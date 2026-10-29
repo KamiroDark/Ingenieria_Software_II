@@ -53,6 +53,10 @@ git clone https://github.com/KamiroDark/ingenieria-software-2.git
 cd ingenieria-software-2
 ```
 
+## ✍️ Autoría
+
+Todo el contenido de este repositorio (documentos, diagramas, código, commits y Pull Requests) se publica con la autoría de los integrantes del equipo. No se menciona a ninguna herramienta de IA como autora, coautora ni colaboradora: nada de `Co-Authored-By`, firmas, ni enlaces o etiquetas de herramientas en commits, PRs o documentos.
+
 ## 📄 Licencia
 
 Uso académico — Fundación Universitaria Konrad Lorenz.
