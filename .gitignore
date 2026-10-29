@@ -1,0 +1,10 @@
+# macOS
+.DS_Store
+
+# Archivos temporales y de bloqueo de Office (Excel, Word, PowerPoint)
+~$*
+*.tmp
+
+# Bonita Studio: datos de ejecución que el Studio regenera
+**/h2_database/
+**/target/
