@@ -8,20 +8,15 @@ Hechos y probados en **Bonita Studio Community 2025.2** (runtime 10.4.0).
 
 ```
 Taller_6/Bonita/
-├── Telco-Konrad.bos                 # Archivo exportado desde Bonita Studio (lo que se importa)
-└── telco-konrad/                    # Proyecto Bonita completo
-    ├── pom.xml
-    └── app/
-        ├── diagrams/
-        │   ├── Telco Konrad AS-IS-1.0.proc
-        │   ├── Telco Konrad AS-IS-1.0.png   # imagen exportada desde Bonita
-        │   ├── Telco Konrad TO-BE-1.0.proc
-        │   └── Telco Konrad TO-BE-1.0.png
-        ├── organizations/ACME.xml
-        └── environements/
+├── Telco-Konrad.bos                     # Proyecto exportado desde Bonita Studio (lo que se importa)
+└── diagramas/
+    ├── Telco Konrad AS-IS-1.0.proc      # Fuente de cada diagrama (idéntica a la que trae el .bos)
+    ├── Telco Konrad AS-IS-1.0.png       # Imagen exportada desde Bonita
+    ├── Telco Konrad TO-BE-1.0.proc
+    └── Telco Konrad TO-BE-1.0.png
 ```
 
-`app/h2_database/` y `target/` no se versionan (son datos de ejecución que Bonita regenera).
+El `.bos` contiene todo el proyecto: los dos diagramas, la organización (`ACME.xml`), los entornos y los `pom.xml`. Los widgets del UI Designer, la configuración de Eclipse, `h2_database/` y `target/` no se versionan porque Bonita Studio los genera al importar o ejecutar el proyecto.
 
 ## Cómo abrirlo en Bonita Studio
 
@@ -30,9 +25,9 @@ Taller_6/Bonita/
 2. *Browse…* → selecciona `Taller_6/Bonita/Telco-Konrad.bos` → *Import*.
 3. Se crea el proyecto **Telco Konrad** con los dos diagramas en *Process diagrams*.
 
-**Opción B — usar la carpeta del proyecto**
+**Opción B — copiar solo los diagramas**
 1. Crea un proyecto en Bonita (*File → New project…*) o abre uno existente.
-2. Copia los `.proc` de `telco-konrad/app/diagrams/` en la carpeta `app/diagrams/` de ese proyecto dentro del workspace de Bonita (en macOS: `BonitaStudioCommunity-2025.2-u0.app/Contents/Eclipse/workspace/<proyecto>/app/diagrams/`).
+2. Copia los `.proc` de `diagramas/` en la carpeta `app/diagrams/` de ese proyecto dentro del workspace de Bonita (en macOS: `BonitaStudioCommunity-2025.2-u0.app/Contents/Eclipse/workspace/<proyecto>/app/diagrams/`).
 3. Selecciona el proyecto en el *Project explorer* y presiona **F5**.
 
 ## AS-IS
