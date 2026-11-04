@@ -1,0 +1,1160 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Simulador WAF, UTM e IdP</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: consola de laboratorio — pestañas por tecnología, controles a la izquierda, flujo + bitácora a la derecha.
+   Paleta tomada del deck del Grupo 2 (WAF rosa, UTM cian, IdP verde) sobre fondo nocturno para proyectar. */
+:root{
+  --bg:#060a14; --panel:#0c1322; --panel-2:#111b30; --line:#1d2a44; --line-2:#2a3a5c;
+  --fg:#e7edf8; --muted:#8b98b3; --dim:#5d6a85;
+  --waf:#ff2e6a; --utm:#14d9f0; --idp:#1fe07f;
+  --ok:#2bd48f; --warn:#ffb321; --bad:#ff4d5e;
+  --accent:var(--waf);
+  --f-display:"Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  color-scheme:dark;
+}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.5;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));}
+body[data-view="utm"]{--accent:var(--utm)}
+body[data-view="idp"]{--accent:var(--idp)}
+*{box-sizing:border-box}
+.wrap{max-width:1280px;margin:0 auto;padding-block:24px 48px}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,.mono{font-family:var(--f-mono);font-size:.86em}
+
+/* header */
+.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px 24px;margin-bottom:20px}
+.top .eyebrow{font:600 12px/1 var(--f-body);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.top h1{font:700 clamp(26px,3.4vw,38px)/1.1 var(--f-display);margin:8px 0 0;text-wrap:balance}
+.bar{height:5px;width:120px;border-radius:5px;margin-top:12px;background:linear-gradient(90deg,var(--waf),var(--utm),var(--idp))}
+.tabs{display:flex;gap:6px;padding:5px;background:var(--panel);border:1px solid var(--line);border-radius:12px;flex-wrap:wrap}
+.tab{border:0;background:transparent;padding:9px 16px;border-radius:8px;cursor:pointer;font:600 14px var(--f-display);color:var(--muted);display:flex;align-items:center;gap:8px}
+.tab .dot{width:8px;height:8px;border-radius:50%;background:var(--c)}
+.tab[aria-selected="true"]{background:var(--panel-2);color:var(--fg);box-shadow:inset 0 -2px 0 var(--c)}
+.tab:hover{color:var(--fg)}
+
+/* views */
+.view-head{display:flex;flex-wrap:wrap;gap:8px 24px;align-items:baseline;justify-content:space-between;margin:8px 0 18px}
+.view-head .eyebrow{font:600 12px var(--f-body);letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.view-head h2{font:700 clamp(22px,2.6vw,30px)/1.15 var(--f-display);margin:4px 0 0;text-wrap:balance}
+.view-head p{margin:6px 0 0;color:var(--muted);max-width:62ch}
+.grid{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:980px){.grid{grid-template-columns:minmax(0,1fr)}}
+.col{display:flex;flex-direction:column;gap:18px;min-width:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;min-width:0}
+.card h3{font:600 15px var(--f-display);margin:0 0 12px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.card h3 small{font:500 12px var(--f-body);color:var(--dim)}
+.label{font:600 11px var(--f-body);letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin:12px 0 6px;display:block}
+.hint{color:var(--muted);font-size:13px;margin:8px 0 0}
+
+/* controls */
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line-2);background:var(--panel-2);padding:6px 10px;border-radius:999px;cursor:pointer;font-size:13px;color:var(--fg)}
+.chip:hover{border-color:var(--accent)}
+.chip.danger{border-color:color-mix(in srgb,var(--bad) 45%,var(--line-2))}
+.chip[aria-pressed="true"]{background:color-mix(in srgb,var(--accent) 18%,var(--panel-2));border-color:var(--accent)}
+.field{width:100%;background:var(--bg);border:1px solid var(--line-2);border-radius:8px;padding:8px 10px;font-family:var(--f-mono);font-size:13px}
+textarea.field{resize:vertical;min-height:70px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.row > .grow{flex:1;min-width:0}
+.btn{border:0;border-radius:9px;padding:10px 16px;font:600 14px var(--f-display);cursor:pointer;background:var(--accent);color:#04101c}
+.btn:hover{filter:brightness(1.08)}
+.btn:disabled{opacity:.4;cursor:not-allowed;filter:none}
+.btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--line-2)}
+.btn.ghost:hover{border-color:var(--accent)}
+.btn.small{padding:7px 11px;font-size:13px}
+.switch{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--line)}
+.switch:first-of-type{border-top:0}
+.switch .t{font-weight:500;font-size:14px}
+.switch .d{color:var(--dim);font-size:12px}
+.tg{position:relative;width:42px;height:24px;flex:none;border-radius:24px;border:0;background:var(--line-2);cursor:pointer;transition:background .2s}
+.tg::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--fg);transition:transform .2s}
+.tg[aria-checked="true"]{background:var(--accent)}
+.tg[aria-checked="true"]::after{transform:translateX(18px);background:#04101c}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.pl-scale{display:flex;justify-content:space-between;font:500 11px var(--f-mono);color:var(--dim)}
+
+/* DNS table */
+.dns{width:100%;border-collapse:collapse;font-size:13px}
+.dns th{font:600 11px var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:var(--dim);text-align:left;padding:4px 6px;border-bottom:1px solid var(--line)}
+.dns td{padding:8px 6px;font-family:var(--f-mono)}
+.proxy{border:1px solid var(--line-2);background:var(--bg);border-radius:999px;padding:4px 10px;cursor:pointer;font:600 12px var(--f-mono);white-space:nowrap}
+.proxy.on{color:var(--waf);border-color:var(--waf)}
+.proxy.off{color:var(--muted)}
+.expose{margin-top:8px;font-size:12.5px;color:var(--muted)}
+.expose b{font-family:var(--f-mono);font-weight:500;color:var(--fg)}
+
+/* pipeline */
+.pipe{display:grid;grid-template-columns:110px 24px minmax(0,1fr) 24px 110px;align-items:center;gap:0}
+@media (max-width:640px){.pipe{grid-template-columns:minmax(0,1fr)}.pipe .arrow{transform:rotate(90deg);justify-self:center;height:24px}}
+.node{border:1px solid var(--line-2);background:var(--panel-2);border-radius:12px;padding:12px;text-align:center;transition:border-color .2s, box-shadow .2s}
+.node .ic{font:600 20px var(--f-mono);color:var(--muted)}
+.node .nm{font:600 13px var(--f-display);margin-top:4px}
+.node .sub{font:400 11.5px var(--f-mono);color:var(--dim);margin-top:2px;overflow-wrap:anywhere}
+.arrow{height:2px;background:var(--line-2);position:relative}
+.arrow::after{content:"";position:absolute;right:-1px;top:-4px;border-left:7px solid var(--line-2);border-top:5px solid transparent;border-bottom:5px solid transparent}
+.arrow.lit{background:var(--accent)}.arrow.lit::after{border-left-color:var(--accent)}
+.arrow.cut{background:repeating-linear-gradient(90deg,var(--bad) 0 4px,transparent 4px 8px)}.arrow.cut::after{border-left-color:transparent}
+.engine{border:2px solid var(--accent);border-radius:16px;padding:12px;background:color-mix(in srgb,var(--accent) 6%,var(--panel))}
+.engine-t{font:600 13px var(--f-display);color:var(--accent);text-align:center;margin-bottom:10px}
+.stages{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+@media (max-width:520px){.stages{grid-template-columns:minmax(0,1fr)}}
+.stage{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;min-width:0;transition:border-color .2s, background .2s}
+.stage .sn{font:600 13px var(--f-display);display:flex;align-items:center;gap:6px}
+.stage .st{font:500 11.5px var(--f-mono);color:var(--dim);margin-top:4px;overflow-wrap:anywhere;min-height:2.6em}
+.stage .led{width:8px;height:8px;border-radius:50%;background:var(--line-2);flex:none}
+[data-s="active"]{border-color:var(--accent)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 25%,transparent)}
+[data-s="active"] .led{background:var(--accent)}
+[data-s="pass"] .led{background:var(--ok)} [data-s="pass"]{border-color:color-mix(in srgb,var(--ok) 50%,var(--line))}
+[data-s="warn"] .led{background:var(--warn)} [data-s="warn"]{border-color:color-mix(in srgb,var(--warn) 55%,var(--line))}
+[data-s="block"] .led{background:var(--bad)} [data-s="block"]{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 10%,var(--panel))}
+[data-s="skip"]{opacity:.38}
+[data-s="hit"]{border-color:var(--bad)!important;background:color-mix(in srgb,var(--bad) 14%,var(--panel-2))}
+[data-s="hit"] .ic{color:var(--bad)}
+[data-s="reached"]{border-color:var(--ok)} [data-s="reached"] .ic{color:var(--ok)}
+.score{display:flex;justify-content:space-between;align-items:center;margin-top:10px;font:500 12px var(--f-mono);color:var(--muted)}
+.meter{flex:1;height:6px;background:var(--line);border-radius:6px;margin:0 10px;overflow:hidden}
+.meter i{display:block;height:100%;width:0;background:var(--warn);transition:width .35s}
+
+/* result */
+.result{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 14px;align-items:start}
+.code{font:700 22px var(--f-mono);padding:6px 10px;border-radius:8px;background:var(--panel-2);border:1px solid var(--line-2);grid-row:span 2}
+.result[data-tone="ok"] .code{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 45%,var(--line))}
+.result[data-tone="blocked"] .code{color:var(--accent);border-color:var(--accent)}
+.result[data-tone="bad"] .code{color:var(--bad);border-color:var(--bad)}
+.result[data-tone="warn"] .code{color:var(--warn);border-color:var(--warn)}
+.result .rt{font:600 16px var(--f-display);margin:2px 0 0}
+.result .rd{color:var(--muted);font-size:13.5px;margin:0}
+.server{grid-column:1/-1;margin:10px 0 0}
+pre.box{margin:0;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:400 12.5px/1.55 var(--f-mono);overflow-x:auto;white-space:pre}
+pre.box.wrap{white-space:pre-wrap;overflow-wrap:anywhere}
+
+/* log */
+.logwrap{overflow-x:auto;max-height:280px;overflow-y:auto}
+table.log{width:100%;border-collapse:collapse;font:400 12px var(--f-mono);font-variant-numeric:tabular-nums;min-width:560px}
+.log th{position:sticky;top:0;background:var(--panel);font:600 10.5px var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:var(--dim);text-align:left;padding:6px;border-bottom:1px solid var(--line)}
+.log td{padding:6px;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere}
+.log td:nth-child(3){max-width:280px}
+.pill{display:inline-block;padding:1px 7px;border-radius:999px;font:600 11px var(--f-mono);border:1px solid currentColor;white-space:nowrap}
+.pill.ok{color:var(--ok)} .pill.bad{color:var(--bad)} .pill.blk{color:var(--accent)} .pill.warn{color:var(--warn)}
+.empty{color:var(--dim);font:400 12.5px var(--f-body);padding:14px 6px}
+
+/* UTM topology */
+.topo{display:grid;grid-template-columns:minmax(0,1fr) 28px minmax(0,1.9fr) 28px minmax(0,.9fr) 28px minmax(0,1fr);align-items:center}
+@media (max-width:760px){.topo{grid-template-columns:minmax(0,1fr)}.topo .arrow{transform:rotate(90deg);justify-self:center;width:24px;margin:10px 0}}
+.topo .arrow{height:2px}
+.topo .arrow.both::before{content:"";position:absolute;left:-1px;top:-4px;border-right:7px solid var(--line-2);border-top:5px solid transparent;border-bottom:5px solid transparent}
+.topo .arrow.lit.both::before{border-right-color:var(--accent)}
+.utmbox{border:2px solid var(--utm);border-radius:16px;padding:12px;background:color-mix(in srgb,var(--utm) 6%,var(--panel));text-align:center}
+.utmbox.down{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 8%,var(--panel))}
+.utmbox .nm{font:700 14px var(--f-display)}
+.mods{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:10px}
+.mod{font:600 11.5px var(--f-body);border:1px solid var(--line-2);border-radius:8px;padding:6px 4px;background:var(--panel);display:flex;align-items:center;justify-content:center;gap:5px;transition:border-color .2s,background .2s}
+.mod .led{width:7px;height:7px;border-radius:50%;background:var(--line-2)}
+.mod.off{opacity:.35;text-decoration:line-through}
+.blockcat{margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;justify-content:center}
+.blockcat span{font:600 10.5px var(--f-mono);background:var(--waf);color:#fff;border-radius:5px;padding:2px 6px}
+.load{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:6px 10px;align-items:center;font:500 12.5px var(--f-mono);color:var(--muted);margin-top:14px}
+.load .meter{margin:0;height:8px}
+.load .meter i{transition:width .4s, background .4s}
+.load b{color:var(--fg);font-weight:500;text-align:right;font-variant-numeric:tabular-nums}
+.chain{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.chain .stage{flex:1 1 120px;padding:8px}
+
+/* IdP sequence */
+.seqwrap{overflow-x:auto}
+.seq{min-width:600px;position:relative;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));row-gap:6px;padding-bottom:6px;
+  background:
+   linear-gradient(var(--line-2),var(--line-2)) 12.5% 0/1px 100% no-repeat,
+   linear-gradient(var(--line-2),var(--line-2)) 37.5% 0/1px 100% no-repeat,
+   linear-gradient(var(--line-2),var(--line-2)) 62.5% 0/1px 100% no-repeat,
+   linear-gradient(var(--line-2),var(--line-2)) 87.5% 0/1px 100% no-repeat;}
+.lane{text-align:center;padding:8px 4px;position:sticky;top:0;z-index:1}
+.lane div{display:inline-block;background:var(--panel-2);border:1px solid var(--line-2);border-radius:10px;padding:6px 10px;font:600 12.5px var(--f-display)}
+.lane div small{display:block;font:400 10.5px var(--f-mono);color:var(--dim)}
+.lane.idpl div{border-color:var(--idp)}
+.msg{--k:2;margin-inline:calc(100% / (var(--k) * 2));position:relative;padding-top:2px;animation:in .3s ease-out both}
+.msg .lbl{font:500 11.5px var(--f-mono);color:var(--fg);text-align:center;padding:0 6px;overflow-wrap:anywhere;background:var(--panel);display:block;width:fit-content;margin:0 auto;max-width:100%;border-radius:4px}
+.msg .ln{height:2px;background:var(--ok);margin-top:3px;position:relative}
+.msg.r .ln::after{content:"";position:absolute;right:-1px;top:-4px;border-left:8px solid var(--ok);border-top:5px solid transparent;border-bottom:5px solid transparent}
+.msg.l .ln::after{content:"";position:absolute;left:-1px;top:-4px;border-right:8px solid var(--ok);border-top:5px solid transparent;border-bottom:5px solid transparent}
+.msg.bad .ln{background:var(--bad)}.msg.bad.r .ln::after{border-left-color:var(--bad)}.msg.bad.l .ln::after{border-right-color:var(--bad)}
+.msg.bad .lbl{color:var(--bad)}
+.msg.warn .ln{background:var(--warn)}.msg.warn.r .ln::after{border-left-color:var(--warn)}.msg.warn.l .ln::after{border-right-color:var(--warn)}
+.msg .n{font:600 10px var(--f-mono);color:var(--idp);margin-right:4px}
+.note{margin:0 6px;background:var(--panel-2);border:1px dashed var(--line-2);border-radius:8px;padding:5px 8px;font:500 11.5px var(--f-mono);color:var(--muted);text-align:center;animation:in .3s ease-out both;overflow-wrap:anywhere}
+.note.bad{border-color:var(--bad);color:var(--bad)} .note.ok{border-color:var(--ok);color:var(--ok)} .note.warn{border-color:var(--warn);color:var(--warn)}
+@keyframes in{from{opacity:.2;transform:translateY(4px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.seq-empty{grid-column:1/-1;text-align:center;color:var(--dim);font-size:13px;padding:22px 10px;background:var(--panel)}
+
+.idp-login{border:1px solid var(--idp);border-radius:12px;padding:14px;background:color-mix(in srgb,var(--idp) 5%,var(--bg))}
+.idp-login .url{font:500 11.5px var(--f-mono);color:var(--muted);background:var(--panel);border-radius:6px;padding:4px 8px;margin-bottom:10px;overflow-wrap:anywhere}
+.idp-login.locked{opacity:.5}
+.idp-login .err{color:var(--bad);font-size:12.5px;min-height:1.2em;margin:6px 0 0}
+.btngrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.btngrid .btn{width:100%}
+
+.jwt{font:400 12px/1.5 var(--f-mono);overflow-wrap:anywhere;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.jwt .h{color:var(--waf)} .jwt .p{color:var(--utm)} .jwt .s{color:var(--idp)}
+.jparts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}
+@media (max-width:560px){.jparts{grid-template-columns:minmax(0,1fr)}}
+.jparts .label{margin-top:0}
+.checks{list-style:none;padding:0;margin:10px 0 0;display:grid;gap:4px;font-size:13px}
+.checks li{display:flex;gap:8px;align-items:baseline}
+.checks .k{font:600 12px var(--f-mono);width:18px;flex:none;text-align:center}
+.checks .y{color:var(--ok)} .checks .x{color:var(--bad)} .checks .q{color:var(--dim)}
+
+.apps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.app{border:1px solid var(--line-2);background:var(--panel-2);border-radius:10px;padding:10px;text-align:left;cursor:pointer;min-width:0}
+.app:hover{border-color:var(--idp)}
+.app .an{font:600 13px var(--f-display);display:flex;justify-content:space-between;gap:6px}
+.app .as{font:400 11.5px var(--f-body);color:var(--dim);margin-top:3px}
+.app[data-st="in"]{border-color:var(--ok)} .app[data-st="in"] .as{color:var(--ok)}
+.app[data-st="need"] .as{color:var(--warn)}
+.app[data-st="down"]{border-color:var(--bad)} .app[data-st="down"] .as{color:var(--bad)}
+
+/* guion + código */
+details.guide{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px 18px}
+details.guide summary{cursor:pointer;font:600 15px var(--f-display);padding:12px 0;list-style-position:inside}
+details.guide ol{margin:0 0 14px;padding-left:22px;display:grid;gap:6px;max-width:80ch}
+details.guide li::marker{color:var(--accent);font-family:var(--f-mono)}
+details.guide .say{color:var(--muted)}
+.codegrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:16px}
+@media (max-width:860px){.codegrid{grid-template-columns:minmax(0,1fr)}}
+.codegrid > div{min-width:0}
+footer{margin-top:28px;color:var(--dim);font-size:12.5px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="eyebrow">Ingeniería de Software 2 · Grupo 51 · Grupo 2</div>
+      <h1>Arquitectura de Seguridad en vivo</h1>
+      <div class="bar"></div>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Componentes">
+      <button class="tab" role="tab" id="tab-waf" data-v="waf" style="--c:var(--waf)" aria-selected="true"><span class="dot"></span>WAF</button>
+      <button class="tab" role="tab" id="tab-utm" data-v="utm" style="--c:var(--utm)" aria-selected="false"><span class="dot"></span>UTM</button>
+      <button class="tab" role="tab" id="tab-idp" data-v="idp" style="--c:var(--idp)" aria-selected="false"><span class="dot"></span>IdP</button>
+    </nav>
+  </header>
+
+  <!-- ===================== WAF ===================== -->
+  <section class="view" id="view-waf" role="tabpanel" aria-labelledby="tab-waf">
+    <div class="view-head">
+      <div>
+        <div class="eyebrow">Web Application Firewall · Capa 7 (HTTP)</div>
+        <h2>¿El ataque llega al App Server?</h2>
+        <p>Elige una petición, envíala y mira cómo el motor de inspección la evalúa con firmas OWASP, heurística y control de bots antes de tocar el servidor de origen.</p>
+      </div>
+    </div>
+    <div class="grid">
+      <div class="col">
+        <div class="card">
+          <h3>Registro DNS <small>Cloudflare</small></h3>
+          <table class="dns">
+            <thead><tr><th>Tipo</th><th>Nombre</th><th>Destino</th><th>Proxy</th></tr></thead>
+            <tbody><tr><td>A</td><td>miapp.com</td><td>192.168.1.5</td><td><button class="proxy on" id="w-proxy" type="button">☁ Proxied</button></td></tr></tbody>
+          </table>
+          <p class="expose" id="w-expose">El visitante resuelve <b>miapp.com → 104.21.48.17</b> (Cloudflare). La IP de origen queda oculta.</p>
+        </div>
+
+        <div class="card">
+          <h3>Petición HTTP</h3>
+          <span class="label">Plantillas</span>
+          <div class="chips" id="w-presets"></div>
+          <span class="label">Solicitud</span>
+          <div class="row">
+            <select class="field" id="w-method" style="width:auto"><option>GET</option><option selected>POST</option></select>
+            <input class="field grow" id="w-path" value="/login" aria-label="Ruta">
+          </div>
+          <span class="label">Cuerpo (form-urlencoded)</span>
+          <textarea class="field" id="w-body" aria-label="Cuerpo de la petición">usuario=admin&amp;clave=' OR 1=1--</textarea>
+          <div class="row" style="margin-top:12px">
+            <button class="btn" id="w-send" type="button">Enviar petición</button>
+            <button class="btn ghost" id="w-burst" type="button">Ráfaga de bot ×60</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Nivel de paranoia <small>OWASP CRS</small></h3>
+          <input type="range" id="w-pl" min="1" max="4" step="1" value="1" aria-label="Nivel de paranoia">
+          <div class="pl-scale"><span>PL1</span><span>PL2</span><span>PL3</span><span>PL4</span></div>
+          <p class="hint" id="w-pl-hint">PL1: solo firmas de ataques evidentes. Pocos falsos positivos.</p>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="card">
+          <h3>Flujo de la petición <small id="w-ip">IP cliente 181.49.112.30</small></h3>
+          <div class="pipe">
+            <div class="node" id="w-n-client"><div class="ic">◉</div><div class="nm">Visitante</div><div class="sub" id="w-n-client-sub">Navegador</div></div>
+            <div class="arrow" id="w-a1"></div>
+            <div class="engine" id="w-engine">
+              <div class="engine-t">Motor de Inspección WAF</div>
+              <div class="stages">
+                <div class="stage" id="w-s-sig"><div class="sn"><span class="led"></span>Firmas</div><div class="st">Base de ataques conocidos (OWASP)</div></div>
+                <div class="stage" id="w-s-heur"><div class="sn"><span class="led"></span>Heurística / IA</div><div class="st">Comportamiento anómalo</div></div>
+                <div class="stage" id="w-s-bot"><div class="sn"><span class="led"></span>Control Bot</div><div class="st">Retos JS y límite de tasa</div></div>
+              </div>
+              <div class="score"><span>Anomalía</span><span class="meter"><i id="w-meter"></i></span><span id="w-score">0 / 5</span></div>
+            </div>
+            <div class="arrow" id="w-a2"></div>
+            <div class="node" id="w-n-server"><div class="ic">▤</div><div class="nm">App Server</div><div class="sub">192.168.1.5</div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="result" id="w-result" data-tone="">
+            <div class="code" id="w-code">—</div>
+            <p class="rt" id="w-rt">Listo para enviar</p>
+            <p class="rd" id="w-rd">La plantilla cargada es una inyección SQL en el login. Pulsa “Enviar petición”, luego apaga el proxy en el registro DNS y repite.</p>
+            <div class="server" id="w-server" hidden></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Bitácora del WAF <button class="btn ghost small" id="w-clear" type="button">Limpiar</button></h3>
+          <div class="logwrap"><table class="log"><thead><tr><th>Hora</th><th>IP</th><th>Petición</th><th>Regla</th><th>Acción</th></tr></thead><tbody id="w-log"></tbody></table></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== UTM ===================== -->
+  <section class="view" id="view-utm" role="tabpanel" aria-labelledby="tab-utm" hidden>
+    <div class="view-head">
+      <div>
+        <div class="eyebrow">Unified Threat Management · Perímetro de red</div>
+        <h2>Una oficina detrás de un FortiGate</h2>
+        <p>Cada conexión atraviesa los módulos del chasis en orden. Activa o desactiva módulos y observa qué se bloquea, qué se cuela y cuánto rendimiento cuesta.</p>
+      </div>
+    </div>
+    <div class="grid">
+      <div class="col">
+        <div class="card">
+          <h3>Módulos del chasis</h3>
+          <div id="u-switches"></div>
+        </div>
+        <div class="card">
+          <h3>Filtro web <small>categorías bloqueadas</small></h3>
+          <div class="chips" id="u-cats"></div>
+        </div>
+        <div class="card">
+          <h3>Generar tráfico</h3>
+          <div class="chips" id="u-events"></div>
+          <div class="switch" style="margin-top:12px;border-top:1px solid var(--line)">
+            <div><div class="t">Falla del equipo</div><div class="d">Simula un Single Point of Failure</div></div>
+            <button class="tg" id="u-fail" role="switch" aria-checked="false" aria-label="Simular falla del equipo"></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="card">
+          <h3>Topología LAN / WAN</h3>
+          <div class="topo">
+            <div class="node" id="u-n-wan"><div class="ic">◍</div><div class="nm">Internet (WAN)</div><div class="sub" id="u-n-wan-sub">ISP · fibra 1 Gbps</div></div>
+            <div class="arrow both" id="u-a1"></div>
+            <div class="utmbox" id="u-box">
+              <div class="nm">FortiGate (UTM)</div>
+              <div class="sub mono" style="color:var(--dim);font-size:11px">un solo hardware · 10.0.0.1</div>
+              <div class="mods" id="u-mods"></div>
+              <div class="blockcat" id="u-blockcat"></div>
+            </div>
+            <div class="arrow both" id="u-a2"></div>
+            <div class="node" id="u-n-sw"><div class="ic">⧉</div><div class="nm">Switch (LAN)</div><div class="sub">10.0.0.0/24</div></div>
+            <div class="arrow both" id="u-a3"></div>
+            <div class="node" id="u-n-pc"><div class="ic">▭</div><div class="nm">PCs Oficina</div><div class="sub" id="u-n-pc-sub">PC-01 … PC-04</div></div>
+          </div>
+          <div class="load">
+            <span>CPU</span><span class="meter"><i id="u-cpu-bar"></i></span><b id="u-cpu">0%</b>
+            <span>Throughput</span><span class="meter"><i id="u-tp-bar" style="background:var(--utm)"></i></span><b id="u-tp">0 Mbps</b>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Cadena de inspección <small id="u-evname">—</small></h3>
+          <div class="chain" id="u-chain"></div>
+          <div class="result" id="u-result" data-tone="" style="margin-top:14px">
+            <div class="code" id="u-code">—</div>
+            <p class="rt" id="u-rt">Elige un evento de tráfico</p>
+            <p class="rd" id="u-rd">Empieza con “PC-01 → facebook.com”: la política BLOCK_CAT: Social_Media de la diapositiva lo bloquea.</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Registro de eventos <button class="btn ghost small" id="u-clear" type="button">Limpiar</button></h3>
+          <div class="logwrap"><table class="log"><thead><tr><th>Hora</th><th>Origen</th><th>Destino</th><th>Módulo</th><th>Acción</th></tr></thead><tbody id="u-log"></tbody></table></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== IdP ===================== -->
+  <section class="view" id="view-idp" role="tabpanel" aria-labelledby="tab-idp" hidden>
+    <div class="view-head">
+      <div>
+        <div class="eyebrow">Identity Provider · OIDC / OAuth2</div>
+        <h2>Angular, IdP y Spring Boot con tokens JWT</h2>
+        <p>Flujo Authorization Code con PKCE. La SPA nunca ve la contraseña: el IdP autentica, emite un JWT firmado y la API solo valida el token.</p>
+      </div>
+    </div>
+    <div class="grid">
+      <div class="col">
+        <div class="card">
+          <h3>1 · Iniciar sesión</h3>
+          <button class="btn" id="i-start" type="button" style="width:100%">Iniciar sesión con SSO</button>
+          <div class="idp-login locked" id="i-form-box" style="margin-top:12px">
+            <div class="url">https://idp.konrad.example/realms/konrad/login</div>
+            <form id="i-form" autocomplete="off">
+              <label class="label" for="i-user" style="margin-top:0">Usuario</label>
+              <input class="field" id="i-user" value="estudiante" disabled>
+              <label class="label" for="i-pass">Contraseña</label>
+              <input class="field" id="i-pass" type="password" value="Konrad2026" disabled>
+              <div class="row" style="margin-top:10px"><button class="btn" id="i-submit" type="submit" disabled>Entrar</button></div>
+              <p class="err" id="i-err"></p>
+            </form>
+            <p class="hint">Directorio de prueba: <code>estudiante / Konrad2026</code> (ROLE_STUDENT) · <code>docente / Admin2026</code> (ROLE_ADMIN)</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>2 · Llamar a la API</h3>
+          <div class="btngrid">
+            <button class="btn small" id="i-notas" type="button">GET /api/notas</button>
+            <button class="btn small" id="i-admin" type="button">GET /api/admin/usuarios</button>
+          </div>
+          <span class="label">Ataques y casos límite</span>
+          <div class="btngrid">
+            <button class="btn ghost small" id="i-tamper" type="button">Alterar rol en el token</button>
+            <button class="btn ghost small" id="i-expire" type="button">Adelantar reloj 1 h</button>
+            <button class="btn ghost small" id="i-refresh" type="button">Renovar token</button>
+            <button class="btn ghost small" id="i-logout" type="button">Cerrar sesión</button>
+          </div>
+          <div class="switch" style="margin-top:10px;border-top:1px solid var(--line)">
+            <div><div class="t">Caída del IdP</div><div class="d">Single Point of Failure crítico</div></div>
+            <button class="tg" id="i-down" role="switch" aria-checked="false" aria-label="Simular caída del IdP"></button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>3 · SSO en el ecosistema</h3>
+          <div class="apps" id="i-apps"></div>
+          <p class="hint">Mismo login para todas las apps de la universidad.</p>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="card">
+          <h3>Diagrama de secuencia <button class="btn ghost small" id="i-clear" type="button">Limpiar</button></h3>
+          <div class="seqwrap">
+            <div class="seq" id="i-seq">
+              <div class="lane"><div>Usuario<small>navegador</small></div></div>
+              <div class="lane"><div>Frontend<small>Angular SPA</small></div></div>
+              <div class="lane idpl"><div>IdP<small>Keycloak / Auth0</small></div></div>
+              <div class="lane"><div>Backend<small>Spring Boot</small></div></div>
+              <div class="seq-empty" id="i-seq-empty">Pulsa “Iniciar sesión con SSO” para ver el flujo paso a paso.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Access token (JWT) <small id="i-jwt-tag">sin token</small></h3>
+          <div class="jwt" id="i-jwt"><span style="color:var(--dim)">Aún no hay token. El IdP lo emitirá al terminar el login.</span></div>
+          <div class="jparts">
+            <div><span class="label">Header</span><pre class="box wrap" id="i-jh">—</pre></div>
+            <div><span class="label">Payload</span><pre class="box wrap" id="i-jp">—</pre></div>
+          </div>
+          <ul class="checks" id="i-checks"></ul>
+        </div>
+
+        <div class="card">
+          <h3>Respuesta de la API</h3>
+          <div class="result" id="i-result" data-tone="">
+            <div class="code" id="i-code">—</div>
+            <p class="rt" id="i-rt">Sin llamadas todavía</p>
+            <p class="rd" id="i-rd">La base de datos de la API guarda notas por <code>sub</code> del usuario. No tiene columna de contraseñas.</p>
+            <div class="server" id="i-server" hidden></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <details class="guide">
+      <summary>Código real equivalente (Spring Boot y Angular)</summary>
+      <div class="codegrid">
+        <div><span class="label">Spring Boot · application.yml</span><pre class="box">spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://idp.konrad.example/realms/konrad
+          audiences: api-notas</pre></div>
+        <div><span class="label">Spring Boot · SecurityConfig.java</span><pre class="box">@Bean
+SecurityFilterChain api(HttpSecurity http) throws Exception {
+  http
+    .authorizeHttpRequests(a -&gt; a
+      .requestMatchers("/api/admin/**").hasRole("ADMIN")
+      .anyRequest().authenticated())
+    .oauth2ResourceServer(o -&gt; o.jwt(Customizer.withDefaults()));
+  return http.build();
+}
+// Nota: mapear el claim "roles" a authorities con un
+// JwtAuthenticationConverter para que hasRole funcione.</pre></div>
+        <div><span class="label">Angular · app.config.ts (angular-auth-oidc-client)</span><pre class="box">provideAuth({
+  config: {
+    authority: 'https://idp.konrad.example/realms/konrad',
+    clientId: 'angular-spa',
+    redirectUrl: window.location.origin,
+    responseType: 'code',          // Authorization Code + PKCE
+    scope: 'openid profile offline_access',
+    useRefreshToken: true,
+    secureRoutes: ['https://api.konrad.example/'],
+  },
+})</pre></div>
+        <div><span class="label">Angular · uso del interceptor</span><pre class="box">// El interceptor agrega el header automáticamente:
+// Authorization: Bearer eyJhbGciOi...
+this.http.get&lt;Nota[]&gt;('https://api.konrad.example/api/notas')
+  .subscribe(notas =&gt; this.notas = notas);</pre></div>
+      </div>
+    </details>
+  </section>
+
+  <footer>
+    <span>Simulación educativa: no envía tráfico real. Las reglas y respuestas imitan OWASP CRS, FortiGate y Keycloak.</span>
+    <span>Fundación Universitaria Konrad Lorenz</span>
+  </footer>
+</div>
+
+<script>
+(() => {
+const $ = s => document.querySelector(s);
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const sleep = ms => new Promise(r => setTimeout(r, reduce ? 0 : ms));
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const clock = () => new Date().toLocaleTimeString('es-CO', {hour12:false});
+const setS = (el, s, note) => { el.dataset.s = s || ''; if (note !== undefined) { const t = el.querySelector('.st'); if (t) t.textContent = note; } };
+
+function addLog(tbody, cells, max = 40) {
+  const empty = tbody.querySelector('.empty'); if (empty) empty.parentElement.remove();
+  const tr = document.createElement('tr');
+  tr.innerHTML = cells.map(c => `<td>${c}</td>`).join('');
+  tbody.prepend(tr);
+  while (tbody.children.length > max) tbody.lastChild.remove();
+}
+function emptyLog(tbody, cols, text) { tbody.innerHTML = `<tr><td colspan="${cols}" class="empty">${text}</td></tr>`; }
+function setResult(prefix, {code, title, detail, tone, server}) {
+  $(`#${prefix}-result`).dataset.tone = tone || '';
+  $(`#${prefix}-code`).textContent = code;
+  $(`#${prefix}-rt`).textContent = title;
+  $(`#${prefix}-rd`).innerHTML = detail || '';
+  const sv = $(`#${prefix}-server`);
+  if (sv) { if (server) { sv.innerHTML = server; sv.hidden = false; } else { sv.hidden = true; sv.innerHTML = ''; } }
+}
+const pill = (cls, t) => `<span class="pill ${cls}">${t}</span>`;
+
+/* ---------- tabs ---------- */
+const views = ['waf','utm','idp'];
+function show(v) {
+  if (!views.includes(v)) v = 'waf';
+  document.body.dataset.view = v;
+  views.forEach(x => {
+    $(`#view-${x}`).hidden = x !== v;
+    $(`#tab-${x}`).setAttribute('aria-selected', x === v);
+  });
+}
+document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => { location.hash = b.dataset.v; show(b.dataset.v); }));
+addEventListener('hashchange', () => show(location.hash.slice(1)));
+show(location.hash.slice(1));
+
+/* =====================================================
+   WAF
+   ===================================================== */
+const W = { proxied:true, pl:1, busy:false };
+const rules = [
+  {id:942100, cat:'SQLi', name:'Inyección SQL (libinjection)', pl:1, score:5,
+    re:/'\s*(or|and)\s+[\w'"]+\s*=\s*[\w'"]+|'\s*or\s*'[^']*'\s*=\s*'|union\s+(all\s+)?select|;\s*drop\s+table|'\s*;\s*--/i},
+  {id:942440, cat:'SQLi', name:'Comentario SQL tras comilla', pl:1, score:5, re:/'[^\n]*(--|#|\/\*)/},
+  {id:941100, cat:'XSS',  name:'XSS: etiqueta script / evento', pl:1, score:5, re:/<\s*script|javascript\s*:|<[^>]+\son\w+\s*=/i},
+  {id:930100, cat:'LFI',  name:'Path Traversal', pl:1, score:5, re:/\.\.[\/\\]|%2e%2e/i},
+  {id:932100, cat:'RCE',  name:'Inyección de comandos Unix', pl:1, score:5, re:/[;|&`]\s*(cat|ls|id|whoami|rm|wget|curl|nc)\b|\$\(/i},
+  {id:942330, cat:'SQLi', name:'Patrón de prueba SQL clásico', pl:2, score:3, re:/'\s*(or|and)\b/i},
+  {id:942432, cat:'SQLi', name:'Caracteres SQL restringidos (PL3)', pl:3, score:5, re:/['";]/},
+  {id:920273, cat:'Protocolo', name:'Caracteres fuera de rango (PL4)', pl:4, score:3, re:/[^a-z0-9=&\/\.\-_ ?\n]/i},
+];
+const presets = [
+  {k:'legit', t:'Login legítimo', m:'POST', p:'/login', b:'usuario=admin&clave=Konrad2026'},
+  {k:'sqli', t:"SQLi ' OR 1=1--", m:'POST', p:'/login', b:"usuario=admin&clave=' OR 1=1--", d:true},
+  {k:'xss', t:'XSS persistente', m:'POST', p:'/comentarios', b:"texto=<script>alert('XSS')<\/script>", d:true},
+  {k:'lfi', t:'Path Traversal', m:'GET', p:'/descargar?archivo=../../../../etc/passwd', b:'', d:true},
+  {k:'rce', t:'Inyección de comandos', m:'GET', p:'/ping?host=8.8.8.8;cat /etc/passwd', b:'', d:true},
+  {k:'fp', t:"Falso positivo (O'Brien)", m:'POST', p:'/comentarios', b:"texto=Excelente clase del profe O'Brien"},
+];
+const pres = $('#w-presets');
+presets.forEach(pr => {
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'chip' + (pr.d ? ' danger' : ''); b.textContent = pr.t;
+  b.addEventListener('click', () => { $('#w-method').value = pr.m; $('#w-path').value = pr.p; $('#w-body').value = pr.b; });
+  pres.appendChild(b);
+});
+const plHints = {
+  1:'PL1: solo firmas de ataques evidentes. Pocos falsos positivos.',
+  2:'PL2: agrega patrones parciales de SQL. Algo más estricto.',
+  3:'PL3: cualquier comilla o punto y coma suma anomalía. Aparecen falsos positivos.',
+  4:'PL4: casi todo símbolo es sospechoso. Solo para apps muy cerradas, como banca.'
+};
+$('#w-pl').addEventListener('input', e => { W.pl = +e.target.value; $('#w-pl-hint').textContent = plHints[W.pl]; });
+
+function renderProxy() {
+  const b = $('#w-proxy');
+  b.className = 'proxy ' + (W.proxied ? 'on' : 'off');
+  b.textContent = W.proxied ? '☁ Proxied' : '◌ Solo DNS';
+  $('#w-expose').innerHTML = W.proxied
+    ? 'El visitante resuelve <b>miapp.com → 104.21.48.17</b> (Cloudflare). La IP de origen queda oculta.'
+    : 'Sin proxy: el DNS publica <b>miapp.com → 192.168.1.5</b>. Cualquiera puede atacar el origen directamente y el WAF queda fuera del camino.';
+  $('#w-engine').style.opacity = W.proxied ? 1 : .45;
+}
+$('#w-proxy').addEventListener('click', () => { W.proxied = !W.proxied; renderProxy(); resetWaf(); });
+
+function decodeAll(s) { let t = s; for (let i = 0; i < 2; i++) { try { t = decodeURIComponent(t.replace(/\+/g, ' ')); } catch (e) {} } return t; }
+function heuristic(text) {
+  const reasons = []; let score = 0;
+  const sym = (text.match(/[^\w\s=&\/.\-?]/g) || []).length;
+  if (text.length > 15 && sym / text.length > 0.18) { score += 2; reasons.push('densidad de símbolos ' + Math.round(sym / text.length * 100) + '%'); }
+  if (text.length > 400) { score += 2; reasons.push('carga inusualmente larga'); }
+  if (/(select|union|script|passwd|cmd|exec)/i.test(text) && sym > 3) { score += 1; reasons.push('palabras clave peligrosas'); }
+  return {score, reasons};
+}
+function parseForm(b) { const o = {}; b.split('&').forEach(kv => { const i = kv.indexOf('='); if (i > 0) o[kv.slice(0, i)] = decodeAll(kv.slice(i + 1)); }); return o; }
+
+function serverSim(method, path, body, text) {
+  if (/\/login/.test(path)) {
+    const f = parseForm(body); const u = f.usuario ?? ''; const p = f.clave ?? '';
+    const q = `SELECT * FROM usuarios\n WHERE usuario='${u}' AND clave='${p}';`;
+    const box = `<span class="label">Lo que ejecuta el servidor vulnerable</span><pre class="box">${esc(q)}</pre>`;
+    if (/'\s*(or|and)\s|'\s*--|'\s*#/i.test(u + p))
+      return {code:'200', tone:'bad', title:'Bypass: sesión iniciada como admin sin contraseña', detail:"La comilla cierra el texto, <code>OR 1=1</code> siempre es verdadero y <code>--</code> comenta el resto. La base devuelve todos los usuarios.", server:box, act:pill('bad','COMPROMETIDO')};
+    if (u === 'admin' && p === 'Konrad2026')
+      return {code:'200', tone:'ok', title:'Login correcto', detail:'Credenciales válidas. Tráfico legítimo que el WAF dejó pasar sin fricción.', server:box, act:pill('ok','200 OK')};
+    return {code:'401', tone:'warn', title:'Credenciales inválidas', detail:'El servidor rechazó el login por usuario o clave incorrectos.', server:box, act:pill('warn','401')};
+  }
+  if (/<\s*script|javascript:|on\w+\s*=/i.test(text))
+    return {code:'201', tone:'bad', title:'XSS persistente almacenado', detail:'El comentario se guardó con el script. Se ejecutará en el navegador de cada estudiante que abra la página.', server:`<span class="label">Fila insertada</span><pre class="box wrap">${esc('INSERT INTO comentarios(texto) VALUES ("' + (parseForm(body).texto || text) + '")')}</pre>`, act:pill('bad','COMPROMETIDO')};
+  if (/\.\.[\/\\]/.test(text))
+    return {code:'200', tone:'bad', title:'Archivo del sistema expuesto', detail:'El servidor siguió la ruta relativa fuera de la carpeta de descargas.', server:`<span class="label">Respuesta del servidor</span><pre class="box">root:x:0:0:root:/root:/bin/bash\ndaemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin\nwww-data:x:33:33:www-data:/var/www:/usr/sbin/nologin</pre>`, act:pill('bad','COMPROMETIDO')};
+  if (/[;|&`]\s*(cat|ls|id|whoami|rm|wget|curl|nc)\b/i.test(text))
+    return {code:'200', tone:'bad', title:'Comando ejecutado en el servidor', detail:'La app concatenó el parámetro en una llamada al sistema operativo.', server:`<span class="label">Lo que ejecuta el servidor</span><pre class="box">${esc('$ ping -c 1 ' + text.split('host=')[1])}</pre>`, act:pill('bad','COMPROMETIDO')};
+  return {code:'200', tone:'ok', title:'Petición atendida', detail:'Contenido legítimo procesado normalmente por la aplicación.', act:pill('ok','200 OK')};
+}
+
+function resetWaf() {
+  ['sig','heur','bot'].forEach(s => setS($('#w-s-' + s), W.proxied ? '' : 'skip'));
+  $('#w-s-sig .st').textContent = 'Base de ataques conocidos (OWASP)';
+  $('#w-s-heur .st').textContent = 'Comportamiento anómalo';
+  $('#w-s-bot .st').textContent = 'Retos JS y límite de tasa';
+  setS($('#w-n-client'), ''); setS($('#w-n-server'), '');
+  ['w-a1','w-a2'].forEach(a => $('#' + a).className = 'arrow');
+  $('#w-meter').style.width = '0'; $('#w-score').textContent = '0 / 5';
+}
+
+async function wafSend() {
+  if (W.busy) return; W.busy = true; $('#w-send').disabled = $('#w-burst').disabled = true;
+  resetWaf();
+  const method = $('#w-method').value, path = $('#w-path').value.trim() || '/', body = method === 'GET' ? '' : $('#w-body').value;
+  const text = decodeAll(path + '\n' + body);
+  const reqLabel = esc(`${method} ${path}${body ? ' · ' + body : ''}`);
+  $('#w-ip').textContent = 'IP cliente 181.49.112.30';
+  setS($('#w-n-client'), 'active'); await sleep(250); setS($('#w-n-client'), 'pass');
+  $('#w-a1').className = 'arrow lit';
+  let total = 0, hits = [];
+  if (W.proxied) {
+    const sig = $('#w-s-sig'), heu = $('#w-s-heur'), bot = $('#w-s-bot');
+    setS(sig, 'active', 'Comparando con reglas CRS…'); await sleep(450);
+    hits = rules.filter(r => r.pl <= W.pl && r.re.test(text));
+    const sigScore = hits.reduce((a, r) => a + r.score, 0);
+    setS(sig, hits.length ? (sigScore >= 5 ? 'block' : 'warn') : 'pass', hits.length ? hits.map(h => `${h.id} ${h.cat} +${h.score}`).join(' · ') : 'Sin coincidencias');
+    total += sigScore; updMeter(total);
+    setS(heu, 'active', 'Analizando comportamiento…'); await sleep(450);
+    const h = heuristic(text); total += h.score; updMeter(total);
+    setS(heu, h.score ? 'warn' : 'pass', h.score ? `+${h.score} · ${h.reasons.join(', ')}` : 'Comportamiento normal');
+    setS(bot, 'active', 'Verificando cliente…'); await sleep(350);
+    setS(bot, 'pass', 'Navegador real · 1 req/s');
+  }
+  const blocked = W.proxied && total >= 5;
+  if (blocked) {
+    $('#w-a2').className = 'arrow cut';
+    const main = hits[0];
+    const fp = hits.length > 0 && hits.every(h => h.pl >= 3);
+    setResult('w', {code:'403', tone:'blocked',
+      title: fp ? 'Bloqueado: falso positivo' : `Bloqueado por regla ${main ? main.id : 'heurística'}`,
+      detail: fp ? `Un comentario legítimo superó el umbral con paranoia PL${W.pl}. El estudiante no puede publicar: hay que ajustar o excluir la regla.`
+                 : `${main ? esc(main.name) + '. ' : ''}Puntaje de anomalía ${total} ≥ 5. La petición nunca llegó al servidor de origen y la app no tuvo que cambiar su código.`});
+    addLog($('#w-log'), [clock(), '181.49.112.30', reqLabel, hits.map(h => h.id).join(', ') || 'heurística', pill('blk', '403 BLOCK')]);
+  } else {
+    $('#w-a2').className = 'arrow lit';
+    setS($('#w-n-server'), 'active'); await sleep(300);
+    const r = serverSim(method, path, body, text);
+    setS($('#w-n-server'), r.tone === 'bad' ? 'hit' : 'reached');
+    if (!W.proxied) r.detail = '<b>WAF fuera del camino (Solo DNS).</b> ' + r.detail;
+    setResult('w', r);
+    addLog($('#w-log'), [clock(), '181.49.112.30', reqLabel, W.proxied ? (hits.length ? hits.map(h => h.id).join(', ') + ' (bajo umbral)' : '—') : 'sin WAF', r.act]);
+  }
+  W.busy = false; $('#w-send').disabled = $('#w-burst').disabled = false;
+}
+function updMeter(v) { $('#w-meter').style.width = Math.min(100, v / 5 * 100) + '%'; $('#w-meter').style.background = v >= 5 ? 'var(--bad)' : 'var(--warn)'; $('#w-score').textContent = `${v} / 5`; }
+
+async function wafBurst() {
+  if (W.busy) return; W.busy = true; $('#w-send').disabled = $('#w-burst').disabled = true;
+  resetWaf();
+  const ip = '45.155.205.233';
+  $('#w-ip').textContent = 'IP cliente ' + ip + ' (scraper)';
+  setS($('#w-n-client'), 'active'); $('#w-n-client-sub').textContent = 'python-requests/2.31';
+  $('#w-a1').className = 'arrow lit';
+  if (!W.proxied) {
+    $('#w-a2').className = 'arrow lit'; setS($('#w-n-server'), 'hit');
+    for (let i = 1; i <= 60; i += 6) { $('#w-score').textContent = `${i}/60`; await sleep(50); }
+    setResult('w', {code:'503', tone:'bad', title:'60 de 60 peticiones llegaron al origen', detail:'<b>WAF fuera del camino.</b> El bot raspa los precios del catálogo y el servidor se satura: los compradores reales reciben errores.'});
+    addLog($('#w-log'), [clock(), ip, 'GET /productos?page=1…60 ×60', 'sin WAF', pill('bad', '60 OK al bot')]);
+  } else {
+    const bot = $('#w-s-bot');
+    setS($('#w-s-sig'), 'pass', 'Peticiones GET limpias');
+    setS($('#w-s-heur'), 'warn', 'Mismo patrón cada 30 ms');
+    setS(bot, 'active');
+    let allowed = 0, chall = 0;
+    for (let i = 1; i <= 60; i++) {
+      if (i <= 20) allowed++; else chall++;
+      if (i % 4 === 0 || i === 60) { bot.querySelector('.st').textContent = `${i}/60 · ${allowed} permitidas · ${chall} con reto JS`; updMeter(i > 20 ? 5 : 0); await sleep(45); }
+    }
+    setS(bot, 'block', `Límite 20 req/s superado · reto JS no resuelto`);
+    $('#w-a2').className = 'arrow cut';
+    setS($('#w-n-server'), 'reached');
+    setResult('w', {code:'429', tone:'blocked', title:'40 de 60 peticiones frenadas en el borde', detail:'El cliente no ejecuta JavaScript, así que falla el reto y queda bloqueado. Un navegador humano resuelve el reto en milisegundos y sigue comprando.'});
+    addLog($('#w-log'), [clock(), ip, 'GET /productos ×20 (antes del límite)', 'rate-limit', pill('ok', '20 OK')]);
+    addLog($('#w-log'), [clock(), ip, 'GET /productos ×40', 'bot-challenge', pill('blk', '40 BLOCK')]);
+  }
+  $('#w-n-client-sub').textContent = 'Navegador';
+  W.busy = false; $('#w-send').disabled = $('#w-burst').disabled = false;
+}
+$('#w-send').addEventListener('click', wafSend);
+$('#w-burst').addEventListener('click', wafBurst);
+$('#w-clear').addEventListener('click', () => emptyLog($('#w-log'), 5, 'Sin eventos. Cada petición enviada aparecerá aquí.'));
+emptyLog($('#w-log'), 5, 'Sin eventos. Cada petición enviada aparecerá aquí.');
+renderProxy(); resetWaf();
+
+/* =====================================================
+   UTM
+   ===================================================== */
+const U = { mods:{fw:true, ips:true, ssl:false, av:true, web:true, vpn:true}, cats:new Set(['Social_Media','P2P_Torrents']), fail:false, busy:false };
+const modInfo = {
+  fw:{n:'Firewall Base', d:'Políticas por IP y puerto', cost:5},
+  ips:{n:'IPS / IDS', d:'Firmas de intrusión y escaneos', cost:16},
+  ssl:{n:'Inspección SSL', d:'Descifra HTTPS para inspeccionarlo', cost:38},
+  av:{n:'Antivirus de Red', d:'Analiza archivos en tránsito', cost:14},
+  web:{n:'Filtro web', d:'Bloqueo por categoría de sitio', cost:6},
+  vpn:{n:'Túneles VPN', d:'IPsec con sucursales', cost:8},
+};
+const order = ['fw','ips','ssl','av','web'];
+const cats = ['Social_Media','P2P_Torrents','Streaming','Juegos'];
+const events = [
+  {k:'fb', t:'PC-01 → facebook.com', src:'PC-01 (10.0.0.21)', dst:'facebook.com:443', dir:'out', https:true, cat:'Social_Media'},
+  {k:'gh', t:'PC-02 → github.com', src:'PC-02 (10.0.0.22)', dst:'github.com:443', dir:'out', https:true, cat:'Tecnología'},
+  {k:'yt', t:'PC-04 → youtube.com', src:'PC-04 (10.0.0.24)', dst:'youtube.com:443', dir:'out', https:true, cat:'Streaming'},
+  {k:'tor', t:'PC-03 → tracker torrent', src:'PC-03 (10.0.0.23)', dst:'tracker.p2p.example:6881', dir:'out', https:false, cat:'P2P_Torrents'},
+  {k:'mhttp', t:'Descarga malware (HTTP)', src:'PC-02 (10.0.0.22)', dst:'http://descargas.example/factura.exe', dir:'out', https:false, cat:'Tecnología', mal:'EICAR-Test-File'},
+  {k:'mhttps', t:'Descarga malware (HTTPS)', src:'PC-02 (10.0.0.22)', dst:'https://cdn.example/factura.exe', dir:'out', https:true, cat:'Tecnología', mal:'EICAR-Test-File'},
+  {k:'scan', t:'Escaneo de puertos (WAN)', src:'45.155.205.233', dst:'10.0.0.1 · 1.000 puertos', dir:'in', ips:'TCP SYN Port Scan (Nmap)'},
+  {k:'ssh', t:'SSH entrante (WAN)', src:'185.220.101.4', dst:'10.0.0.10:22', dir:'in', deny:true},
+  {k:'vpn', t:'Sucursal Medellín → ERP', src:'Sucursal Medellín', dst:'ERP 10.0.0.20:443', dir:'vpn'},
+];
+const sw = $('#u-switches');
+Object.entries(modInfo).forEach(([k, m]) => {
+  const d = document.createElement('div'); d.className = 'switch';
+  d.innerHTML = `<div><div class="t">${m.n}</div><div class="d">${m.d}</div></div><button class="tg" role="switch" id="u-tg-${k}" aria-label="${m.n}" aria-checked="${U.mods[k]}"></button>`;
+  d.querySelector('button').addEventListener('click', e => { U.mods[k] = !U.mods[k]; e.currentTarget.setAttribute('aria-checked', U.mods[k]); renderUtm(); });
+  sw.appendChild(d);
+});
+const catBox = $('#u-cats');
+cats.forEach(c => {
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = c;
+  b.setAttribute('aria-pressed', U.cats.has(c));
+  b.addEventListener('click', () => { U.cats.has(c) ? U.cats.delete(c) : U.cats.add(c); b.setAttribute('aria-pressed', U.cats.has(c)); renderUtm(); });
+  catBox.appendChild(b);
+});
+const evBox = $('#u-events');
+events.forEach(ev => {
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'chip' + (ev.mal || ev.ips || ev.deny ? ' danger' : ''); b.textContent = ev.t;
+  b.addEventListener('click', () => utmRun(ev)); evBox.appendChild(b);
+});
+$('#u-fail').addEventListener('click', e => { U.fail = !U.fail; e.currentTarget.setAttribute('aria-checked', U.fail); renderUtm(); });
+
+function renderUtm() {
+  const mods = $('#u-mods'); mods.innerHTML = '';
+  Object.entries(modInfo).forEach(([k, m]) => {
+    const d = document.createElement('div'); d.className = 'mod' + (U.mods[k] ? '' : ' off'); d.id = 'u-m-' + k;
+    d.innerHTML = `<span class="led"></span>${m.n}`; mods.appendChild(d);
+  });
+  $('#u-blockcat').innerHTML = U.mods.web ? [...U.cats].map(c => `<span>BLOCK_CAT: ${c}</span>`).join('') : '';
+  $('#u-box').classList.toggle('down', U.fail);
+  const cpu = U.fail ? 0 : Math.min(98, 12 + Object.entries(U.mods).reduce((a, [k, on]) => a + (on ? modInfo[k].cost : 0), 0));
+  const tp = U.fail ? 0 : Math.round(1000 * 20 / (cpu + 8));
+  $('#u-cpu').textContent = U.fail ? 'sin energía' : cpu + '%';
+  $('#u-cpu-bar').style.width = cpu + '%';
+  $('#u-cpu-bar').style.background = cpu > 75 ? 'var(--bad)' : cpu > 50 ? 'var(--warn)' : 'var(--ok)';
+  $('#u-tp').textContent = tp + ' Mbps';
+  $('#u-tp-bar').style.width = (tp / 10) + '%';
+  ['u-a1','u-a2','u-a3'].forEach(a => $('#' + a).className = 'arrow both' + (U.fail ? ' cut' : ''));
+  const chain = $('#u-chain'); chain.innerHTML = '';
+  order.forEach(k => {
+    const d = document.createElement('div'); d.className = 'stage'; d.id = 'u-c-' + k;
+    d.innerHTML = `<div class="sn"><span class="led"></span>${modInfo[k].n}</div><div class="st">${U.mods[k] ? 'en espera' : 'desactivado'}</div>`;
+    if (!U.mods[k]) d.dataset.s = 'skip';
+    chain.appendChild(d);
+  });
+}
+
+async function utmRun(ev) {
+  if (U.busy) return; U.busy = true;
+  renderUtm();
+  $('#u-evname').textContent = ev.t;
+  const log = (mod, act) => addLog($('#u-log'), [clock(), esc(ev.src), esc(ev.dst), mod, act]);
+  const stage = k => $('#u-c-' + k);
+  const modEl = k => $('#u-m-' + k);
+  const lit = (on) => ['u-a1','u-a2','u-a3'].forEach(a => $('#' + a).classList.toggle('lit', on));
+  const pass = async (k, note) => { if (!U.mods[k]) return; setS(stage(k), 'active', 'inspeccionando…'); setS(modEl(k), 'active'); await sleep(320); setS(stage(k), 'pass', note); setS(modEl(k), 'pass'); };
+  const block = async (k, note) => { setS(stage(k), 'active', 'inspeccionando…'); setS(modEl(k), 'active'); await sleep(380); setS(stage(k), 'block', note); setS(modEl(k), 'block'); };
+  const done = () => { U.busy = false; };
+
+  if (U.fail) {
+    setResult('u', {code:'✕', tone:'bad', title:'Sin conexión: el UTM está caído', detail:'Todo el tráfico de la oficina pasa por un solo aparato. Sin un segundo equipo en alta disponibilidad (HA), nadie navega, la VPN cae y el ERP queda aislado.'});
+    log('chasis', pill('bad', 'SIN SERVICIO')); return done();
+  }
+  lit(true);
+  setS($('#u-n-wan'), ''); setS($('#u-n-pc'), '');
+
+  // VPN
+  if (ev.dir === 'vpn') {
+    $('#u-n-wan-sub').textContent = 'Sucursal Medellín';
+    if (!U.mods.vpn) {
+      await sleep(300);
+      setS(modEl('vpn'), 'block');
+      setResult('u', {code:'DENY', tone:'bad', title:'La sucursal no puede llegar al ERP', detail:'Con el módulo VPN apagado no hay túnel cifrado. El ERP no se publica a Internet, así que la sucursal queda desconectada.'});
+      log('VPN', pill('bad', 'SIN TÚNEL')); $('#u-n-wan-sub').textContent = 'ISP · fibra 1 Gbps'; return done();
+    }
+    setS(modEl('vpn'), 'active'); await sleep(350); setS(modEl('vpn'), 'pass');
+    await pass('fw', 'Política VPN→LAN #5 permite 443');
+    await pass('ips', 'Sin firmas de intrusión');
+    setS($('#u-n-pc'), 'reached');
+    setResult('u', {code:'ALLOW', tone:'ok', title:'Túnel IPsec activo con la oficina central', detail:'IKEv2 · AES-256-GCM. La sucursal usa el ERP como si estuviera en la LAN, con un solo aparato en cada sede.'});
+    log('VPN', pill('ok', 'TÚNEL OK')); $('#u-n-wan-sub').textContent = 'ISP · fibra 1 Gbps'; return done();
+  }
+
+  // Inbound
+  if (ev.dir === 'in') {
+    setS($('#u-n-wan'), 'hit'); $('#u-n-wan-sub').textContent = ev.src;
+    if (ev.deny) {
+      if (U.mods.fw) {
+        await block('fw', 'Política #3 DENY WAN→LAN tcp/22');
+        setResult('u', {code:'DENY', tone:'blocked', title:'Firewall descarta el SSH entrante', detail:'Ningún puerto administrativo se expone a Internet. La regla implícita deniega lo que no está permitido.'});
+        log('Firewall', pill('blk', 'DENY'));
+      } else {
+        await sleep(300); setS($('#u-n-pc'), 'hit');
+        setResult('u', {code:'OPEN', tone:'bad', title:'Puerto 22 expuesto a Internet', detail:'Sin firewall base, el atacante puede intentar contraseñas contra el servidor interno por fuerza bruta.'});
+        log('—', pill('bad', 'EXPUESTO'));
+      }
+    } else {
+      await pass('fw', 'Puertos 80/443 publicados en la DMZ');
+      if (U.mods.ips) {
+        await block('ips', ev.ips + ' · IP en cuarentena 1 h');
+        setResult('u', {code:'DROP', tone:'blocked', title:'IPS detecta un escaneo de puertos', detail:`Firma <code>${esc(ev.ips)}</code>. El atacante no logra mapear la red y su IP queda en cuarentena.`});
+        log('IPS', pill('blk', 'DROP + BAN'));
+      } else {
+        await sleep(300); setS($('#u-n-pc'), 'hit');
+        setResult('u', {code:'PASS', tone:'bad', title:'El escaneo pasa sin ser detectado', detail:'Sin IPS, el atacante descubre qué servicios y versiones corren en la red para preparar el siguiente paso.'});
+        log('—', pill('bad', 'NO DETECTADO'));
+      }
+    }
+    $('#u-n-wan-sub').textContent = 'ISP · fibra 1 Gbps'; return done();
+  }
+
+  // Outbound
+  setS($('#u-n-pc'), 'active'); $('#u-n-pc-sub').textContent = ev.src;
+  await pass('fw', 'Política LAN→WAN #1 permite');
+  await pass('ips', 'Sin firmas de intrusión');
+  const visible = !ev.https || U.mods.ssl;
+  if (U.mods.ssl) await pass('ssl', ev.https ? 'TLS descifrado y re-cifrado' : 'Tráfico ya en claro');
+  if (ev.mal) {
+    if (U.mods.av && visible) {
+      await block('av', 'Detectado: ' + ev.mal);
+      setResult('u', {code:'BLOCK', tone:'blocked', title:'Antivirus de red detiene la descarga', detail:`Firma <code>${ev.mal}</code> en <code>factura.exe</code>. El archivo nunca llega al PC-02.` + (ev.https ? ' Se pudo ver porque la inspección SSL está activa: observa la CPU.' : '')});
+      log('Antivirus', pill('blk', 'BLOCK')); $('#u-n-pc-sub').textContent = 'PC-01 … PC-04'; setS($('#u-n-pc'), ''); return done();
+    }
+    if (U.mods.av) setS(stage('av'), 'warn', 'Contenido cifrado: no se puede analizar');
+    await sleep(250); setS($('#u-n-pc'), 'hit');
+    setResult('u', {code:'PASS', tone:'bad', title: U.mods.av ? 'El malware pasó cifrado por HTTPS' : 'Malware descargado sin análisis',
+      detail: U.mods.av ? 'El antivirus solo ve bytes cifrados. Activa la inspección SSL para verlo, a costa de CPU y throughput.' : 'Sin antivirus de red, el archivo infectado llega al equipo.'});
+    log(U.mods.av ? 'Antivirus (ciego)' : '—', pill('bad', 'INFECCIÓN')); $('#u-n-pc-sub').textContent = 'PC-01 … PC-04'; return done();
+  }
+  await pass('av', 'Sin archivos sospechosos');
+  if (U.mods.web && U.cats.has(ev.cat)) {
+    await block('web', 'BLOCK_CAT: ' + ev.cat);
+    setResult('u', {code:'BLOCK', tone:'blocked', title:`Sitio bloqueado por categoría ${ev.cat}`, detail:`El usuario ve la página de bloqueo de FortiGuard. El filtro funciona incluso sin inspección SSL porque lee el nombre del sitio (SNI) en el saludo TLS.`});
+    log('Filtro web', pill('blk', 'BLOCK_CAT')); $('#u-n-pc-sub').textContent = 'PC-01 … PC-04'; setS($('#u-n-pc'), ''); return done();
+  }
+  await pass('web', 'Categoría ' + ev.cat + ' permitida');
+  setS($('#u-n-pc'), 'reached');
+  setResult('u', {code:'ALLOW', tone:'ok', title:'Conexión permitida', detail:`${esc(ev.dst)} pasó por todos los módulos activos. Categoría: ${ev.cat}.`});
+  log('Todos', pill('ok', 'ALLOW')); $('#u-n-pc-sub').textContent = 'PC-01 … PC-04'; return done();
+}
+$('#u-clear').addEventListener('click', () => emptyLog($('#u-log'), 5, 'Sin eventos. Genera tráfico desde el panel izquierdo.'));
+emptyLog($('#u-log'), 5, 'Sin eventos. Genera tráfico desde el panel izquierdo.');
+renderUtm();
+
+/* =====================================================
+   IdP
+   ===================================================== */
+const I = { session:null, token:null, offset:0, down:false, awaiting:false, n:0, tampered:false };
+const directory = {
+  estudiante:{pass:'Konrad2026', name:'Laura Gómez', sub:'b7e1c2a4-3f9d-4e21-9a6b-5c8d0f17e2aa', roles:['ROLE_STUDENT']},
+  docente:{pass:'Admin2026', name:'Prof. Andrés Ruiz', sub:'0c4f9d2e-81ab-4c37-b2d1-7e6a95f30b14', roles:['ROLE_ADMIN','ROLE_TEACHER']},
+};
+const SECRET = 'clave-privada-que-solo-conoce-el-idp';
+const ISS = 'https://idp.konrad.example/realms/konrad';
+const enc = new TextEncoder(), dec = new TextDecoder();
+const now = () => Math.floor(Date.now() / 1000) + I.offset;
+const b64u = bytes => btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const b64uStr = s => b64u(enc.encode(s));
+const unb64u = s => { s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; return dec.decode(Uint8Array.from(atob(s), c => c.charCodeAt(0))); };
+let hmacKey = null;
+async function sign(data) {
+  try {
+    if (window.crypto && crypto.subtle) {
+      if (!hmacKey) hmacKey = await crypto.subtle.importKey('raw', enc.encode(SECRET), {name:'HMAC', hash:'SHA-256'}, false, ['sign']);
+      return b64u(new Uint8Array(await crypto.subtle.sign('HMAC', hmacKey, enc.encode(data))));
+    }
+  } catch (e) {}
+  // respaldo no criptográfico si el navegador no expone SubtleCrypto
+  let h1 = 0x811c9dc5, h2 = 0x1234567;
+  const s = SECRET + data;
+  for (let i = 0; i < s.length; i++) { h1 = Math.imul(h1 ^ s.charCodeAt(i), 16777619); h2 = Math.imul(h2 + s.charCodeAt(i), 2654435761); }
+  return b64uStr((h1 >>> 0).toString(16) + (h2 >>> 0).toString(16) + (h1 ^ h2 >>> 0).toString(16));
+}
+async function makeJwt(uKey) {
+  const u = directory[uKey]; const iat = now();
+  const header = {alg:'HS256', typ:'JWT', kid:'konrad-2026'};
+  const payload = {iss:ISS, sub:u.sub, aud:'api-notas', azp:'angular-spa', preferred_username:uKey, name:u.name, roles:u.roles, scope:'openid profile', iat, exp:iat + 300};
+  const h = b64uStr(JSON.stringify(header)), p = b64uStr(JSON.stringify(payload));
+  return `${h}.${p}.${await sign(h + '.' + p)}`;
+}
+async function verify(tok) {
+  const [h, p, s] = tok.split('.');
+  const payload = JSON.parse(unb64u(p));
+  const sigOk = (await sign(h + '.' + p)) === s;
+  return {payload, sigOk, expOk: now() < payload.exp, audOk: payload.aud === 'api-notas', issOk: payload.iss === ISS};
+}
+
+const seqEl = $('#i-seq');
+const cols = {user:1, spa:2, idp:3, api:4};
+function seqClear() { seqEl.querySelectorAll('.msg,.note,.seq-empty').forEach(e => e.remove()); I.n = 0; }
+function seqMsg(from, to, label, tone) {
+  $('#i-seq-empty')?.remove();
+  const a = cols[from], b = cols[to], lo = Math.min(a, b), hi = Math.max(a, b);
+  const d = document.createElement('div');
+  d.className = 'msg ' + (b > a ? 'r' : 'l') + (tone ? ' ' + tone : '');
+  d.style.gridColumn = `${lo} / ${hi + 1}`; d.style.setProperty('--k', hi - lo + 1);
+  d.innerHTML = `<span class="lbl"><span class="n">${++I.n}</span>${esc(label)}</span><div class="ln"></div>`;
+  seqEl.appendChild(d); d.scrollIntoView({block:'nearest'});
+}
+function seqNote(col, text, tone) {
+  $('#i-seq-empty')?.remove();
+  const d = document.createElement('div'); d.className = 'note' + (tone ? ' ' + tone : '');
+  d.style.gridColumn = `${cols[col]} / ${cols[col] + 1}`; d.textContent = text; seqEl.appendChild(d);
+}
+function lockForm(locked) {
+  $('#i-form-box').classList.toggle('locked', locked);
+  ['#i-user','#i-pass','#i-submit'].forEach(s => $(s).disabled = locked);
+  if (!locked) $('#i-pass').focus();
+}
+const short = t => t ? t.slice(0, 18) + '…' : '';
+
+async function renderJwt() {
+  const box = $('#i-jwt'), checks = $('#i-checks');
+  if (!I.token) {
+    box.innerHTML = '<span style="color:var(--dim)">Aún no hay token. El IdP lo emitirá al terminar el login.</span>';
+    $('#i-jh').textContent = '—'; $('#i-jp').textContent = '—'; checks.innerHTML = ''; $('#i-jwt-tag').textContent = 'sin token'; return;
+  }
+  const [h, p, s] = I.token.split('.');
+  box.innerHTML = `<span class="h">${h}</span>.<span class="p">${p}</span>.<span class="s">${s}</span>`;
+  $('#i-jh').textContent = JSON.stringify(JSON.parse(unb64u(h)), null, 2);
+  const v = await verify(I.token);
+  const pl = Object.assign({}, v.payload);
+  $('#i-jp').textContent = JSON.stringify(pl, null, 2).replace(/"(iat|exp)": (\d+)/g, (m, k, n) => `${m}  // ${new Date(n * 1000).toLocaleTimeString('es-CO', {hour12:false})}`);
+  const left = v.payload.exp - now();
+  const li = (ok, t) => `<li><span class="k ${ok === null ? 'q' : ok ? 'y' : 'x'}">${ok === null ? '·' : ok ? '✓' : '✕'}</span><span>${t}</span></li>`;
+  checks.innerHTML =
+    li(v.sigOk, v.sigOk ? 'Firma válida: el contenido no fue modificado' : 'Firma inválida: el payload no coincide con la firma del IdP') +
+    li(v.expOk, v.expOk ? `Vigente: expira en ${Math.floor(left / 60)} min ${left % 60} s` : `Expirado hace ${Math.floor(-left / 60)} min`) +
+    li(v.audOk && v.issOk, 'Emisor y audiencia: <code>' + esc(v.payload.iss.replace('https://', '')) + '</code> → <code>api-notas</code>') +
+    li(null, 'Roles: <code>' + esc(v.payload.roles.join(', ')) + '</code>');
+  $('#i-jwt-tag').textContent = I.tampered ? 'modificado en el navegador' : v.expOk ? 'HS256 · vigente' : 'expirado';
+  $('#i-jwt-tag').style.color = I.tampered || !v.expOk ? 'var(--bad)' : 'var(--dim)';
+}
+let jwtTimer = setInterval(() => { if (I.token && !$('#view-idp').hidden) renderJwt(); }, 1000);
+
+async function startLogin() {
+  if (I.awaiting) return;
+  seqMsg('user', 'spa', 'Clic en “Iniciar sesión”');
+  await sleep(250);
+  seqMsg('spa', 'idp', 'GET /authorize?response_type=code&client_id=angular-spa&code_challenge=E9Mel…&code_challenge_method=S256');
+  await sleep(300);
+  if (I.down) {
+    seqMsg('idp', 'spa', '503 Service Unavailable · timeout', 'bad');
+    setResult('i', {code:'503', tone:'bad', title:'El IdP no responde', detail:'Nadie puede iniciar sesión en ninguna app del ecosistema. Por eso los IdP se despliegan en clúster con alta disponibilidad.'});
+    return;
+  }
+  if (I.session) {
+    seqNote('idp', 'Cookie SSO válida: no pide contraseña', 'ok');
+    await sleep(250); return issue(I.session);
+  }
+  seqMsg('idp', 'user', '200 · Página de login del IdP');
+  I.awaiting = true; lockForm(false); $('#i-err').textContent = '';
+}
+async function submitLogin(e) {
+  e.preventDefault(); if (!I.awaiting) return;
+  const u = $('#i-user').value.trim(), p = $('#i-pass').value;
+  seqMsg('user', 'idp', `POST /login usuario=${u} (la SPA no ve la clave)`);
+  await sleep(300);
+  if (I.down) { seqMsg('idp', 'user', '503 Service Unavailable', 'bad'); return; }
+  const rec = directory[u];
+  if (!rec || rec.pass !== p) {
+    seqNote('idp', 'Directorio: credenciales inválidas', 'bad');
+    $('#i-err').textContent = 'Usuario o contraseña incorrectos. Revisa los datos de prueba.'; return;
+  }
+  seqNote('idp', 'Directorio (LDAP) valida usuario y hash de clave', 'ok');
+  I.awaiting = false; lockForm(true); I.session = u; renderApps();
+  await sleep(250); issue(u);
+}
+async function issue(u) {
+  seqMsg('idp', 'spa', '302 → /callback?code=SplxlOBeZQ&state=af0ifj');
+  await sleep(300);
+  seqMsg('spa', 'idp', 'POST /token grant_type=authorization_code + code_verifier');
+  await sleep(300);
+  I.token = await makeJwt(u); I.tampered = false;
+  seqMsg('idp', 'spa', `200 {access_token: ${short(I.token)}, expires_in: 300}`);
+  seqNote('spa', 'Guarda el token en memoria', '');
+  await renderJwt();
+  setResult('i', {code:'JWT', tone:'ok', title:`Sesión iniciada como ${directory[u].name}`, detail:'Ahora la SPA puede llamar a la API adjuntando el token como Bearer.'});
+}
+async function callApi(path) {
+  const admin = path.includes('admin');
+  seqMsg('spa', 'api', `GET ${path}  Authorization: Bearer ${I.token ? short(I.token) : '(vacío)'}`);
+  await sleep(300);
+  if (!I.token) {
+    seqMsg('api', 'spa', '401 Unauthorized · falta token', 'bad');
+    setResult('i', {code:'401', tone:'bad', title:'Sin token, sin acceso', detail:'La API rechaza cualquier petición que no traiga un Bearer token. Inicia sesión primero.'}); return;
+  }
+  const v = await verify(I.token);
+  seqNote('api', 'Valida firma (JWKS), iss, aud y exp', v.sigOk && v.expOk ? 'ok' : 'bad');
+  await sleep(250);
+  if (!v.sigOk) {
+    seqMsg('api', 'spa', '401 invalid_token · firma no coincide', 'bad');
+    setResult('i', {code:'401', tone:'bad', title:'Token manipulado: firma inválida', detail:'Cambiar el rol en el payload es fácil porque solo es Base64, pero la firma se calculó con la clave del IdP. Sin esa clave no se puede volver a firmar.'}); return;
+  }
+  if (!v.expOk) {
+    seqMsg('api', 'spa', '401 invalid_token · token expirado', 'bad');
+    setResult('i', {code:'401', tone:'bad', title:'Token expirado', detail:'Los access tokens duran poco (5 min aquí). Usa “Renovar token”: el IdP emite uno nuevo sin pedir contraseña si la sesión SSO sigue viva.'}); return;
+  }
+  if (admin && !v.payload.roles.includes('ROLE_ADMIN')) {
+    seqMsg('api', 'spa', '403 Forbidden · requiere ROLE_ADMIN', 'warn');
+    setResult('i', {code:'403', tone:'warn', title:'Autenticado, pero sin permiso', detail:`El token es válido y la API sabe que eres <code>${esc(v.payload.preferred_username)}</code>, pero tu rol <code>${esc(v.payload.roles.join(', '))}</code> no autoriza esta ruta. 401 es “¿quién eres?”, 403 es “no puedes”.`}); return;
+  }
+  seqMsg('api', 'spa', '200 OK · JSON');
+  const data = admin
+    ? [{sub:'b7e1c2a4…', usuario:'estudiante', roles:['ROLE_STUDENT']}, {sub:'0c4f9d2e…', usuario:'docente', roles:['ROLE_ADMIN','ROLE_TEACHER']}]
+    : [{materia:'Ingeniería de Software 2', corte1:4.3, corte2:4.6}, {materia:'Bases de Datos', corte1:3.9, corte2:4.1}];
+  setResult('i', {code:'200', tone:'ok', title: admin ? 'Listado de usuarios (solo administradores)' : `Notas de ${v.payload.name}`,
+    detail:'La API identificó al usuario por el claim <code>sub</code> del token, sin consultar contraseñas.',
+    server:`<pre class="box">${esc(JSON.stringify(data, null, 2))}</pre>`});
+}
+async function tamper() {
+  if (!I.token) { setResult('i', {code:'—', tone:'warn', title:'Primero inicia sesión', detail:'Necesitas un token para intentar manipularlo.'}); return; }
+  const [h, p, s] = I.token.split('.');
+  const pl = JSON.parse(unb64u(p)); pl.roles = ['ROLE_ADMIN'];
+  I.token = `${h}.${b64uStr(JSON.stringify(pl))}.${s}`; I.tampered = true;
+  seqNote('user', 'Edita el payload en DevTools: roles → ROLE_ADMIN', 'warn');
+  await renderJwt();
+  setResult('i', {code:'✎', tone:'warn', title:'Token alterado en el navegador', detail:'El payload ahora dice ROLE_ADMIN y la firma es la original. Prueba GET /api/admin/usuarios.'});
+}
+async function expire() {
+  if (!I.token) { setResult('i', {code:'—', tone:'warn', title:'Primero inicia sesión', detail:'No hay token que expirar.'}); return; }
+  I.offset += 3600; seqNote('spa', 'Reloj +1 h (el token caducó)', 'warn');
+  await renderJwt();
+  setResult('i', {code:'⏱', tone:'warn', title:'Pasó una hora', detail:'El claim <code>exp</code> ya quedó atrás. Llama a la API para ver la respuesta.'});
+}
+async function refresh() {
+  seqMsg('spa', 'idp', 'POST /token grant_type=refresh_token');
+  await sleep(300);
+  if (I.down) { seqMsg('idp', 'spa', '503 Service Unavailable', 'bad'); setResult('i', {code:'503', tone:'bad', title:'No se puede renovar: IdP caído', detail:'Cuando el token actual expire, el usuario quedará fuera aunque la API funcione.'}); return; }
+  if (!I.session) { seqMsg('idp', 'spa', '400 invalid_grant · sin sesión', 'bad'); setResult('i', {code:'400', tone:'bad', title:'No hay sesión SSO', detail:'Inicia sesión de nuevo.'}); return; }
+  I.token = await makeJwt(I.session); I.tampered = false;
+  seqMsg('idp', 'spa', `200 {access_token: ${short(I.token)}, expires_in: 300}`);
+  await renderJwt();
+  setResult('i', {code:'JWT', tone:'ok', title:'Token renovado sin contraseña', detail:'Nuevo token con <code>iat</code> y <code>exp</code> actualizados y la firma original del IdP.'});
+}
+function logout() {
+  if (I.session) seqMsg('spa', 'idp', 'GET /logout · cierra la sesión SSO');
+  I.session = null; I.token = null; I.tampered = false; I.awaiting = false; lockForm(true);
+  renderJwt(); renderApps();
+  setResult('i', {code:'—', tone:'', title:'Sesión cerrada', detail:'El IdP invalidó la sesión: todas las apps del ecosistema piden login otra vez.'});
+}
+
+const apps = [
+  {k:'aula', n:'Aula Virtual', st:'need'}, {k:'correo', n:'Correo', st:'need'},
+  {k:'kapp', n:'KApp', st:'need'}, {k:'biblio', n:'Biblioteca', st:'need'},
+];
+const appState = {};
+function renderApps() {
+  const box = $('#i-apps'); box.innerHTML = '';
+  apps.forEach(a => {
+    let st = appState[a.k] || 'idle';
+    if (!I.session && st === 'in') st = appState[a.k] = 'idle';
+    const txt = {idle:'Clic para abrir', in:`Dentro como ${I.session || ''} · sin contraseña`, need:'Redirigido al IdP: inicia sesión', down:'IdP caído: no se puede entrar'}[st];
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'app'; b.dataset.st = st;
+    b.innerHTML = `<div class="an">${a.n}<span class="mono" style="color:var(--dim)">↗</span></div><div class="as">${txt}</div>`;
+    b.addEventListener('click', () => {
+      if (I.down && !(appState[a.k] === 'in')) appState[a.k] = 'down';
+      else if (I.session) { appState[a.k] = 'in'; seqNote('idp', `${a.n}: sesión SSO reutilizada`, 'ok'); }
+      else appState[a.k] = 'need';
+      renderApps();
+    });
+    box.appendChild(b);
+  });
+}
+
+$('#i-start').addEventListener('click', startLogin);
+$('#i-form').addEventListener('submit', submitLogin);
+$('#i-notas').addEventListener('click', () => callApi('/api/notas'));
+$('#i-admin').addEventListener('click', () => callApi('/api/admin/usuarios'));
+$('#i-tamper').addEventListener('click', tamper);
+$('#i-expire').addEventListener('click', expire);
+$('#i-refresh').addEventListener('click', refresh);
+$('#i-logout').addEventListener('click', logout);
+$('#i-down').addEventListener('click', e => {
+  I.down = !I.down; e.currentTarget.setAttribute('aria-checked', I.down);
+  seqNote('idp', I.down ? 'IdP fuera de servicio' : 'IdP restablecido', I.down ? 'bad' : 'ok');
+  if (!I.down) Object.keys(appState).forEach(k => { if (appState[k] === 'down') appState[k] = 'idle'; });
+  renderApps();
+});
+$('#i-clear').addEventListener('click', () => { seqClear(); const d = document.createElement('div'); d.className = 'seq-empty'; d.id = 'i-seq-empty'; d.textContent = 'Diagrama limpio. Ejecuta una acción para ver los mensajes.'; seqEl.appendChild(d); });
+renderApps();
+})();
+</script>
+
+</body></html>
