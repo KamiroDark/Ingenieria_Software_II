@@ -2,7 +2,7 @@
 
 Decisiones del Proyecto #1 (Telco Konrad, matriz EA-XPress) y cómo defenderlas. Es un documento vivo: se actualiza con cada taller.
 
-Fuentes: `docs/telco-konrad/` (AS-IS, TO-BE, Anexo técnico y Anexo técnico II) y la plantilla `Plantilla EA/EA-XPress.xls`. Diagramas de integración en `docs/diagramas/`.
+Fuentes: `docs/telco-konrad/` (AS-IS, TO-BE, Anexo técnico y Anexo técnico II) y la plantilla `docs/plantillas/EA-XPress.xls`. Diagramas de integración en `docs/diagramas/`.
 
 | Taller | Hojas |
 |---|---|
