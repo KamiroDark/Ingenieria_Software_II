@@ -14,17 +14,79 @@ Fuentes: `docs/telco-konrad/` (AS-IS, TO-BE, Anexo técnico y Anexo técnico II)
 
 ## Nomenclatura de GAPs
 
-Cada prefijo son las iniciales de su sección, en mayúsculas:
+Cada prefijo son las iniciales del análisis que lo produce, en mayúsculas:
 
-| Prefijo | Hoja | Brechas de |
-|---|---|---|
-| AP-GAP | 1.0 | Procesos de negocio |
-| AINF-GAP | 2.0 | Información / datos (antes D-GAP) |
-| AA-GAP | 3.0 | Aplicaciones |
-| AINT-GAP | 4.0 | Integración |
-| AT-GAP | 5.0 | Tecnología |
+| Prefijo | Significado completo | Hoja | Ejemplo |
+|---|---|---|---|
+| AP-GAP | **A**nálisis de **P**rocesos · brecha | 1.0 | AP-GAP-21: validación contra listas negativas |
+| AINF-GAP | **A**nálisis de **Inf**ormación · brecha (antes D-GAP) | 2.0 | AINF-GAP-01: CRM como maestro del cliente |
+| AA-GAP | **A**nálisis de **A**plicaciones · brecha | 3.0 | AA-GAP-03: RequestManager deja de adjuntar documentos |
+| AINT-GAP | **A**nálisis de **Int**egración · brecha | 4.0 | AINT-GAP-05: ID-TRUE → RNEC por Web Service |
+| AT-GAP | **A**nálisis de **T**ecnología · brecha | 5.0 | AT-GAP-09: Single Sign On |
+
+### Otros identificadores y siglas
+
+| ID / sigla | Significado completo |
+|---|---|
+| Meta 1, 2, 3 | Metas de negocio de la hoja 0.0: 1 Unificación de los datos de clientes, 2 Eliminar procesos manuales, 3 Integración de sistemas |
+| SN-1, SN-2, SN-3 | Estrategia de negocio habilitadora 1, 2 o 3 de cada meta (hoja 0.0). "Meta 3 · SN-1" = estrategia 1 de la meta 3 |
+| O1.1 … O3.3 | Objetivo SMART: el primer número es la meta y el segundo la fase (O2.3 = meta 2, fase 3) |
+| AT-1 … AT-92 | Fila del modelo de referencia técnico (TRM) de la hoja 5.0; no es una brecha |
+| ABB-ID | Architecture Building Block: número del proyecto de solución en la hoja 7.0 |
+| NEW / MODIFY / DELETE / KEEP | Algo que se crea / se cambia / se elimina / se mantiene igual |
+| AS-IS / TO-BE | Estado actual / estado futuro deseado |
+| RNEC | Registraduría Nacional del Estado Civil |
+| CRM | Customer Relationship Management: gestión de clientes |
+| ECM | Enterprise Content Management: gestión documental |
+| IdP / SSO | Proveedor de identidad / inicio de sesión único (Single Sign On) |
+| OCR | Reconocimiento óptico de caracteres |
+| PAD | Tableta de captura de firma |
+| WS / RMI / SMTP | Web Service / invocación remota de métodos Java / protocolo de envío de correo |
+| TRM | Technical Reference Model: catálogo de servicios técnicos de TOGAF que usa la hoja 5.0 |
 
 Las instrucciones originales de la plantilla piden los prefijos "D", "App" e "INT". Se dejaron sin modificar, pero los IDs siguen la nomenclatura del grupo.
+
+---
+
+## Aplicaciones del caso: qué hace cada una
+
+> Diagramas de cómo se comunican (métodos, medio y qué dato viaja en cada llamada): [`docs/diagramas/INTEGRACIONES_TO-BE.md`](docs/diagramas/INTEGRACIONES_TO-BE.md).
+
+### Aplicaciones internas
+
+| Aplicación | Estado | Qué hace específicamente | Para qué |
+|---|---|---|---|
+| **ID-TRUE** | AS-IS y TO-BE (cambia) | AS-IS: con el número de identificación consulta la base de datos y muestra los datos y la foto del cliente; el asesor compara a ojo con el documento físico. Si el cliente no existe, lo enrola (datos biográficos, adicionales y foto). TO-BE: captura la huella y la valida con la RNEC, lee el documento con el escáner 3 luces (OCR por RMI), consulta las listas negativas y crea el cliente en el CRM. | Confirmar que el cliente es quien dice ser y frenar el fraude de identidad. |
+| **CRM** | AS-IS y TO-BE (cambia) | Consulta, crea y actualiza el cliente. Según el anexo, es "la aplicación en donde los clientes se crean y es el punto centralizado de donde se toma la información". TO-BE: es el **maestro del cliente** y expone un único servicio de cliente con el modelo canónico (hoja 2.1). | Tener una sola versión del cliente para todas las aplicaciones. |
+| **VALIDACIÓN CREDITICIA** | AS-IS y TO-BE | Consulta por tipo y número de identificación la historia del cliente en las centrales de riesgo y guarda una calificación: TRUE pre-aprobado o FALSE rechazado. Crea la calificación la primera vez y la actualiza en las siguientes. TO-BE: RequestManager le pide la calificación por Web Service. | Decidir si se pre-aprueba la obligación que va a adquirir el cliente. |
+| **RequestManager** | AS-IS y TO-BE (cambia) | Registra la **solicitud** de producto o servicio, crea o actualiza el cliente de la solicitud, adjunta los documentos escaneados y guarda la forma de envío (1 email, 2 físico). TO-BE: crea la solicitud dentro del flujo único, obtiene la calificación y entrega los **metadatos** del expediente aprobado al gestor documental; deja de adjuntar documentos (AA-GAP-03) y de guardar la forma de envío (AA-GAP-04). | Llevar el expediente de cada venta. No es un ERP. |
+| **DOCUMENTO DIGITAL** | Nueva (TO-BE) | Crear documentos (formularios web, autorización de centrales y e-contrato firmados en el PAD), adjuntar documentos (en el punto de venta y de forma remota con acceso seguro) e imprimir documentos. Además envía el contrato por correo y genera el archivo plano diario para el gestor documental. | Que la venta se haga sin papel: es donde los documentos **nacen, se firman y se completan**. |
+| **Gestor Documental** | Nuevo (TO-BE) | Lee cada 24 h el archivo plano de DOCUMENTO DIGITAL (documentos) y consume el Web Service de RequestManager (metadatos). Une ambos por idSolicitud, indexa, clasifica y conserva con reglas de retención. | Ser el **archivo oficial y definitivo** de la compañía; reemplaza el archivo físico de Bogotá. |
+| **Listas negativas** | Nuevo componente (TO-BE) | Guarda las identidades asociadas a fraude. ID-TRUE la consulta antes de seguir con la venta y registra los casos que el back de validación no confirma. | Bloquear a tiempo a quienes ya intentaron un fraude. |
+
+### DOCUMENTO DIGITAL vs. Gestor Documental
+
+| | DOCUMENTO DIGITAL | Gestor Documental |
+|---|---|---|
+| Rol | Aplicación operativa de la venta | Repositorio de archivo (ECM) |
+| Momento | Durante la venta | Después de aprobada la solicitud |
+| Qué hace | Crea, firma, completa, imprime y envía documentos | Guarda, indexa, busca y conserva documentos |
+| Usuarios | Asesor y cliente | Back office, auditoría, cumplimiento |
+| Documentos | En trabajo, pueden cambiar | Definitivos, con versión y retención |
+| Analogía | El escritorio donde se arma y firma el expediente | La bodega oficial donde queda archivado |
+
+Comparación corta: DOCUMENTO DIGITAL produce los documentos; el gestor documental los custodia.
+
+### Sistemas y dispositivos externos
+
+| Sistema | Qué hace | Cómo se integra (TO-BE) |
+|---|---|---|
+| RNEC (Registraduría Nacional del Estado Civil) | Confirma la identidad y la huella del ciudadano | ID-TRUE consume su Web Service |
+| Escáner 3 luces | Verifica la autenticidad del documento y lee sus datos por OCR | ID-TRUE ejecuta un método del software del escáner por RMI |
+| Captor de huella | Captura la huella del cliente en el punto de venta | Dispositivo conectado a ID-TRUE |
+| PAD de firma | Captura la firma electrónica del cliente | Dispositivo usado desde DOCUMENTO DIGITAL |
+| Centrales de riesgo | Entregan la historia crediticia del cliente | Validación Crediticia las consulta |
+| Servidor de correo | Envía el contrato y los anexos al cliente | DOCUMENTO DIGITAL por SMTP |
 
 ---
 
@@ -34,7 +96,7 @@ Las instrucciones originales de la plantilla piden los prefijos "D", "App" e "IN
 
 ---
 
-## Hoja 2.0 · Información (AINF-GAP)
+## Hoja 2.0 · Análisis de Información (AINF-GAP)
 
 ### CRM en el AS-IS (AINF-GAP-01)
 - El CRM **sí existe** en el AS-IS. El anexo lo presenta entre las entidades "que influyen en los procesos AS-IS" y dice que es "la aplicación en donde los clientes se crean y es el punto centralizado de donde se toma la información". El TO-BE habla de "los datos existentes en el CRM".
@@ -61,7 +123,7 @@ Argumento corto: el canónico no solo unifica lo que existe; también incorpora 
 
 ---
 
-## Hoja 3.0 · Aplicaciones (AA-GAP)
+## Hoja 3.0 · Análisis de Aplicaciones (AA-GAP)
 
 - **Sección 1:** fiel a la plantilla, solo lleva "x". Usa las mismas 20 actividades AS-IS y 20 TO-BE de la hoja 1.0.
   - Aplicaciones AS-IS: ID-TRUE, Validación Crediticia, RequestManager y CRM.
@@ -76,7 +138,7 @@ Es el gestor de **solicitudes de venta**: crea la solicitud y guarda el expedien
 
 ---
 
-## Hoja 4.0 · Integración (AINT-GAP)
+## Hoja 4.0 · Análisis de Integración (AINT-GAP)
 
 - **Lectura:** fila contra columna. Las aplicaciones de la izquierda consumen los servicios que exponen las aplicaciones de arriba.
 - **AS-IS:**
