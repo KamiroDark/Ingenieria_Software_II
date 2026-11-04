@@ -1,0 +1,14 @@
+# Datos locales de ejecución de Bonita (pesan decenas de MB y no sirven a otros)
+**/h2_database/
+# Código generado por Studio al desplegar
+**/target/
+.flattened-pom.xml
+# Respaldos y temporales
+*.bak
+*.bak2
+*.log
+# Correos capturados por el SMTP falso
+4_utilidades/smtp_falso/bandeja/
+# Python
+__pycache__/
+*.pyc

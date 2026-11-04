@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_BancoElBosque" targetNamespace="http://bancoelbosque.example/credito">
+  <bpmn:collaboration id="Collab"><bpmn:participant id="Pool" name="Banco El Bosque - Crédito de libre inversión" processRef="Process_CreditoLibreInversion"/></bpmn:collaboration>
+  <bpmn:process id="Process_CreditoLibreInversion" name="Banco El Bosque - Crédito de libre inversión" isExecutable="true">
+    <bpmn:laneSet id="LaneSet">
+      <bpmn:lane id="L_Asesor" name="Asesor de oficina">
+        <bpmn:flowNodeRef>StartEvent</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>RegistroSolicitud</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>NotificarCompletar</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>NotificarExceso</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>DecisionCliente</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>GW_ReduceMonto</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>ActualizarMonto</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>AgendarFirma</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>RegistrarFirma</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>GW_Firma</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="L_Riesgos" name="Analista de riesgos">
+        <bpmn:flowNodeRef>EstudioRiesgo</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>GW_Riesgo</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="L_Financiero" name="Analista financiero">
+        <bpmn:flowNodeRef>EstudioInterno</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>GW_Interno</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EstudioCentrales</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>GW_Centrales</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EstudioDIAN</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>GW_DIAN</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EstudioCapacidad</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>GW_Capacidad</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="L_Abogado" name="Abogado">
+        <bpmn:flowNodeRef>EstudioAntecedentes</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>GW_Antecedentes</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="L_Director" name="Director">
+        <bpmn:flowNodeRef>AprobacionDirector</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>GW_Director</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="L_Cajero" name="Cajero">
+        <bpmn:flowNodeRef>Desembolso</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndAprobado</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="L_Sistema" name="Sistema (notificaciones)">
+        <bpmn:flowNodeRef>NotificarRechazo</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndRechazo</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="StartEvent" name="Inicio de solicitud"/>
+    <bpmn:userTask id="RegistroSolicitud" name="Registrar solicitud y documentos"/>
+    <bpmn:userTask id="EstudioRiesgo" name="Estudio preliminar de riesgos"/>
+    <bpmn:exclusiveGateway id="GW_Riesgo" name="¿Riesgo aprobado?" default="F07"/>
+    <bpmn:serviceTask id="NotificarCompletar" name="Notificar por correo: completar información"/>
+    <bpmn:userTask id="EstudioInterno" name="Estudio interno de anotaciones"/>
+    <bpmn:exclusiveGateway id="GW_Interno" name="¿Sin anotaciones?" default="F10"/>
+    <bpmn:userTask id="EstudioCentrales" name="Registrar consultas Datacrédito y CIFIN"/>
+    <bpmn:exclusiveGateway id="GW_Centrales" name="¿Calificaciones superiores a 60?" default="F13"/>
+    <bpmn:userTask id="EstudioDIAN" name="Registrar estado tributario DIAN"/>
+    <bpmn:exclusiveGateway id="GW_DIAN" name="¿Cliente al día con DIAN?" default="F16"/>
+    <bpmn:userTask id="EstudioCapacidad" name="Calcular capacidad de endeudamiento"/>
+    <bpmn:exclusiveGateway id="GW_Capacidad" name="¿Monto dentro de la capacidad?" default="F19"/>
+    <bpmn:serviceTask id="NotificarExceso" name="Notificar por correo: reducir monto"/>
+    <bpmn:userTask id="DecisionCliente" name="Registrar decisión del cliente"/>
+    <bpmn:exclusiveGateway id="GW_ReduceMonto" name="¿Acepta reducir el monto?" default="F24"/>
+    <bpmn:userTask id="ActualizarMonto" name="Actualizar monto solicitado"/>
+    <bpmn:userTask id="EstudioAntecedentes" name="Revisión jurídica y antecedentes"/>
+    <bpmn:exclusiveGateway id="GW_Antecedentes" name="¿Sin requerimientos?" default="F27"/>
+    <bpmn:userTask id="AprobacionDirector" name="Aprobación final del director"/>
+    <bpmn:exclusiveGateway id="GW_Director" name="¿Aprobado por el director?" default="F30"/>
+    <bpmn:userTask id="AgendarFirma" name="Agendar cita para firma del pagaré"/>
+    <bpmn:userTask id="RegistrarFirma" name="Registrar datos y resultado de firma"/>
+    <bpmn:exclusiveGateway id="GW_Firma" name="¿Pagaré firmado?" default="F34"/>
+    <bpmn:userTask id="Desembolso" name="Realizar desembolso"/>
+    <bpmn:endEvent id="EndAprobado" name="Crédito desembolsado"/>
+    <bpmn:serviceTask id="NotificarRechazo" name="Notificar por correo: solicitud rechazada"/>
+    <bpmn:endEvent id="EndRechazo" name="Solicitud rechazada"/>
+    <bpmn:sequenceFlow id="F01" sourceRef="StartEvent" targetRef="RegistroSolicitud"/>
+    <bpmn:sequenceFlow id="F02" sourceRef="RegistroSolicitud" targetRef="EstudioRiesgo"/>
+    <bpmn:sequenceFlow id="F03" sourceRef="EstudioRiesgo" targetRef="GW_Riesgo"/>
+    <bpmn:sequenceFlow id="F04" sourceRef="GW_Riesgo" targetRef="EstudioInterno" name="APROBADO"><bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" language="groovy">solicitud.estudioRiesgo?.estado == "APROBADO"</bpmn:conditionExpression></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="F05" sourceRef="GW_Riesgo" targetRef="NotificarCompletar" name="DEVUELTO"><bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" language="groovy">solicitud.estudioRiesgo?.estado == "DEVUELTO"</bpmn:conditionExpression></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="F06" sourceRef="NotificarCompletar" targetRef="RegistroSolicitud"/>
+    <bpmn:sequenceFlow id="F07" sourceRef="GW_Riesgo" targetRef="NotificarRechazo" name="RECHAZADO"/>
+    <bpmn:sequenceFlow id="F08" sourceRef="EstudioInterno" targetRef="GW_Interno"/>
+    <bpmn:sequenceFlow id="F09" sourceRef="GW_Interno" targetRef="EstudioCentrales" name="APROBADO"><bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" language="groovy">solicitud.estudioInterno?.estado == "APROBADO"</bpmn:conditionExpression></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="F10" sourceRef="GW_Interno" targetRef="NotificarRechazo" name="RECHAZADO"/>
+    <bpmn:sequenceFlow id="F11" sourceRef="EstudioCentrales" targetRef="GW_Centrales"/>
+    <bpmn:sequenceFlow id="F12" sourceRef="GW_Centrales" targetRef="EstudioDIAN" name="APROBADO"><bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" language="groovy">solicitud.estudiosCentrales?.size() &gt;= 2 &amp;&amp; solicitud.estudiosCentrales.every { it.calificacion != null &amp;&amp; it.calificacion &gt; 60 }</bpmn:conditionExpression></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="F13" sourceRef="GW_Centrales" targetRef="NotificarRechazo" name="RECHAZADO"/>
+    <bpmn:sequenceFlow id="F14" sourceRef="EstudioDIAN" targetRef="GW_DIAN"/>
+    <bpmn:sequenceFlow id="F15" sourceRef="GW_DIAN" targetRef="EstudioCapacidad" name="APROBADO"><bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" language="groovy">solicitud.estudiosTributarios?.size() &gt;= 1 &amp;&amp; solicitud.estudiosTributarios.every { it.resultado == "AL_DIA" }</bpmn:conditionExpression></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="F16" sourceRef="GW_DIAN" targetRef="NotificarRechazo" name="RECHAZADO"/>
+    <bpmn:sequenceFlow id="F17" sourceRef="EstudioCapacidad" targetRef="GW_Capacidad"/>
+    <bpmn:sequenceFlow id="F18" sourceRef="GW_Capacidad" targetRef="EstudioAntecedentes" name="APROBADO"><bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" language="groovy">solicitud.montoSolicitado &lt;= solicitud.estudioCapacidad?.capacidadEndeudamiento</bpmn:conditionExpression></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="F19" sourceRef="GW_Capacidad" targetRef="NotificarExceso" name="EXCEDE"/>
+    <bpmn:sequenceFlow id="F20" sourceRef="NotificarExceso" targetRef="DecisionCliente"/>
+    <bpmn:sequenceFlow id="F21" sourceRef="DecisionCliente" targetRef="GW_ReduceMonto"/>
+    <bpmn:sequenceFlow id="F22" sourceRef="GW_ReduceMonto" targetRef="ActualizarMonto" name="SI"><bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" language="groovy">solicitud.decisionReducirMonto == true</bpmn:conditionExpression></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="F23" sourceRef="ActualizarMonto" targetRef="EstudioCapacidad"/>
+    <bpmn:sequenceFlow id="F24" sourceRef="GW_ReduceMonto" targetRef="NotificarRechazo" name="NO"/>
+    <bpmn:sequenceFlow id="F25" sourceRef="EstudioAntecedentes" targetRef="GW_Antecedentes"/>
+    <bpmn:sequenceFlow id="F26" sourceRef="GW_Antecedentes" targetRef="AprobacionDirector" name="APROBADO"><bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" language="groovy">solicitud.estudiosAntecedentes?.size() &gt;= 1 &amp;&amp; solicitud.estudiosAntecedentes.every { it.resultado == "NO_REQUERIDO" }</bpmn:conditionExpression></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="F27" sourceRef="GW_Antecedentes" targetRef="NotificarRechazo" name="RECHAZADO"/>
+    <bpmn:sequenceFlow id="F28" sourceRef="AprobacionDirector" targetRef="GW_Director"/>
+    <bpmn:sequenceFlow id="F29" sourceRef="GW_Director" targetRef="AgendarFirma" name="APROBADO"><bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" language="groovy">solicitud.aprobacionFinal?.estado == "APROBADO"</bpmn:conditionExpression></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="F30" sourceRef="GW_Director" targetRef="NotificarRechazo" name="RECHAZADO"/>
+    <bpmn:sequenceFlow id="F31" sourceRef="AgendarFirma" targetRef="RegistrarFirma"/>
+    <bpmn:sequenceFlow id="F32" sourceRef="RegistrarFirma" targetRef="GW_Firma"/>
+    <bpmn:sequenceFlow id="F33" sourceRef="GW_Firma" targetRef="Desembolso" name="SI"><bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" language="groovy">solicitud.firmaPagare?.firmado == true</bpmn:conditionExpression></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="F34" sourceRef="GW_Firma" targetRef="AgendarFirma" name="NO"/>
+    <bpmn:sequenceFlow id="F35" sourceRef="Desembolso" targetRef="EndAprobado"/>
+    <bpmn:sequenceFlow id="F36" sourceRef="NotificarRechazo" targetRef="EndRechazo"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="D"><bpmndi:BPMNPlane id="P" bpmnElement="Collab">
+    <bpmndi:BPMNShape id="Pool_di" bpmnElement="Pool" isHorizontal="true"><dc:Bounds x="30" y="0" width="4630" height="910"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="L_Asesor_di" bpmnElement="L_Asesor" isHorizontal="true"><dc:Bounds x="60" y="0" width="4600" height="130"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="L_Riesgos_di" bpmnElement="L_Riesgos" isHorizontal="true"><dc:Bounds x="60" y="130" width="4600" height="130"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="L_Financiero_di" bpmnElement="L_Financiero" isHorizontal="true"><dc:Bounds x="60" y="260" width="4600" height="130"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="L_Abogado_di" bpmnElement="L_Abogado" isHorizontal="true"><dc:Bounds x="60" y="390" width="4600" height="130"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="L_Director_di" bpmnElement="L_Director" isHorizontal="true"><dc:Bounds x="60" y="520" width="4600" height="130"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="L_Cajero_di" bpmnElement="L_Cajero" isHorizontal="true"><dc:Bounds x="60" y="650" width="4600" height="130"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="L_Sistema_di" bpmnElement="L_Sistema" isHorizontal="true"><dc:Bounds x="60" y="780" width="4600" height="130"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="StartEvent_di" bpmnElement="StartEvent"><dc:Bounds x="122" y="47" width="36" height="36"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="RegistroSolicitud_di" bpmnElement="RegistroSolicitud"><dc:Bounds x="260" y="30" width="160" height="70"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="EstudioRiesgo_di" bpmnElement="EstudioRiesgo"><dc:Bounds x="460" y="160" width="160" height="70"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="GW_Riesgo_di" bpmnElement="GW_Riesgo" isMarkerVisible="true"><dc:Bounds x="715" y="170" width="50" height="50"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="NotificarCompletar_di" bpmnElement="NotificarCompletar"><dc:Bounds x="660" y="30" width="160" height="70"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="EstudioInterno_di" bpmnElement="EstudioInterno"><dc:Bounds x="860" y="290" width="160" height="70"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="GW_Interno_di" bpmnElement="GW_Interno" isMarkerVisible="true"><dc:Bounds x="1115" y="300" width="50" height="50"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="EstudioCentrales_di" bpmnElement="EstudioCentrales"><dc:Bounds x="1260" y="290" width="160" height="70"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="GW_Centrales_di" bpmnElement="GW_Centrales" isMarkerVisible="true"><dc:Bounds x="1515" y="300" width="50" height="50"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="EstudioDIAN_di" bpmnElement="EstudioDIAN"><dc:Bounds x="1660" y="290" width="160" height="70"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="GW_DIAN_di" bpmnElement="GW_DIAN" isMarkerVisible="true"><dc:Bounds x="1915" y="300" width="50" height="50"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="EstudioCapacidad_di" bpmnElement="EstudioCapacidad"><dc:Bounds x="2060" y="290" width="160" height="70"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="GW_Capacidad_di" bpmnElement="GW_Capacidad" isMarkerVisible="true"><dc:Bounds x="2315" y="300" width="50" height="50"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="NotificarExceso_di" bpmnElement="NotificarExceso"><dc:Bounds x="2460" y="30" width="160" height="70"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="DecisionCliente_di" bpmnElement="DecisionCliente"><dc:Bounds x="2660" y="30" width="160" height="70"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="GW_ReduceMonto_di" bpmnElement="GW_ReduceMonto" isMarkerVisible="true"><dc:Bounds x="2915" y="40" width="50" height="50"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="ActualizarMonto_di" bpmnElement="ActualizarMonto"><dc:Bounds x="3060" y="30" width="160" height="70"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="EstudioAntecedentes_di" bpmnElement="EstudioAntecedentes"><dc:Bounds x="2460" y="420" width="160" height="70"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="GW_Antecedentes_di" bpmnElement="GW_Antecedentes" isMarkerVisible="true"><dc:Bounds x="2715" y="430" width="50" height="50"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="AprobacionDirector_di" bpmnElement="AprobacionDirector"><dc:Bounds x="3260" y="550" width="160" height="70"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="GW_Director_di" bpmnElement="GW_Director" isMarkerVisible="true"><dc:Bounds x="3515" y="560" width="50" height="50"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="AgendarFirma_di" bpmnElement="AgendarFirma"><dc:Bounds x="3660" y="30" width="160" height="70"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="RegistrarFirma_di" bpmnElement="RegistrarFirma"><dc:Bounds x="3860" y="30" width="160" height="70"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="GW_Firma_di" bpmnElement="GW_Firma" isMarkerVisible="true"><dc:Bounds x="4115" y="40" width="50" height="50"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Desembolso_di" bpmnElement="Desembolso"><dc:Bounds x="4260" y="680" width="160" height="70"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="EndAprobado_di" bpmnElement="EndAprobado"><dc:Bounds x="4522" y="697" width="36" height="36"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="NotificarRechazo_di" bpmnElement="NotificarRechazo"><dc:Bounds x="3860" y="810" width="160" height="70"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="EndRechazo_di" bpmnElement="EndRechazo"><dc:Bounds x="4122" y="827" width="36" height="36"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNEdge id="F01_di" bpmnElement="F01"><di:waypoint x="158" y="65"/><di:waypoint x="260" y="65"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="F02_di" bpmnElement="F02"><di:waypoint x="340" y="100"/><di:waypoint x="340" y="195"/><di:waypoint x="460" y="195"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="F03_di" bpmnElement="F03"><di:waypoint x="620" y="195"/><di:waypoint x="715" y="195"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="F04_di" bpmnElement="F04"><di:waypoint x="740" y="220"/><di:waypoint x="740" y="325"/><di:waypoint x="860" y="325"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="F05_di" bpmnElement="F05"><di:waypoint x="740" y="170"/><di:waypoint x="740" y="100"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="F06_di" bpmnElement="F06"><di:waypoint x="740" y="30"/><di:waypoint x="740" y="14"/><di:waypoint x="340" y="14"/><di:waypoint x="340" y="30"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="F07_di" bpmnElement="F07"><di:waypoint x="740" y="220"/><di:waypoint x="740" y="845"/><di:waypoint x="3860" y="845"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="F08_di" bpmnElement="F08"><di:waypoint x="1020" y="325"/><di:waypoint x="1115" y="325"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="F09_di" bpmnElement="F09"><di:waypoint x="1165" y="325"/><di:waypoint x="1260" y="325"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="F10_di" bpmnElement="F10"><di:waypoint x="1140" y="350"/><di:waypoint x="1140" y="845"/><di:waypoint x="3860" y="845"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="F11_di" bpmnElement="F11"><di:waypoint x="1420" y="325"/><di:waypoint x="1515" y="325"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="F12_di" bpmnElement="F12"><di:waypoint x="1565" y="325"/><di:waypoint x="1660" y="325"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="F13_di" bpmnElement="F13"><di:waypoint x="1540" y="350"/><di:waypoint x="1540" y="845"/><di:waypoint x="3860" y="845"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="F14_di" bpmnElement="F14"><di:waypoint x="1820" y="325"/><di:waypoint x="1915" y="325"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="F15_di" bpmnElement="F15"><di:waypoint x="1965" y="325"/><di:waypoint x="2060" y="325"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="F16_di" bpmnElement="F16"><di:waypoint x="1940" y="350"/><di:waypoint x="1940" y="845"/><di:waypoint x="3860" y="845"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="F17_di" bpmnElement="F17"><di:waypoint x="2220" y="325"/><di:waypoint x="2315" y="325"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="F18_di" bpmnElement="F18"><di:waypoint x="2340" y="350"/><di:waypoint x="2340" y="455"/><di:waypoint x="2460" y="455"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="F19_di" bpmnElement="F19"><di:waypoint x="2340" y="300"/><di:waypoint x="2340" y="65"/><di:waypoint x="2460" y="65"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="F20_di" bpmnElement="F20"><di:waypoint x="2620" y="65"/><di:waypoint x="2660" y="65"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="F21_di" bpmnElement="F21"><di:waypoint x="2820" y="65"/><di:waypoint x="2915" y="65"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="F22_di" bpmnElement="F22"><di:waypoint x="2965" y="65"/><di:waypoint x="3060" y="65"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="F23_di" bpmnElement="F23"><di:waypoint x="3140" y="30"/><di:waypoint x="3140" y="14"/><di:waypoint x="2140" y="14"/><di:waypoint x="2140" y="290"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="F24_di" bpmnElement="F24"><di:waypoint x="2940" y="90"/><di:waypoint x="2940" y="845"/><di:waypoint x="3860" y="845"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="F25_di" bpmnElement="F25"><di:waypoint x="2620" y="455"/><di:waypoint x="2715" y="455"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="F26_di" bpmnElement="F26"><di:waypoint x="2740" y="480"/><di:waypoint x="2740" y="585"/><di:waypoint x="3260" y="585"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="F27_di" bpmnElement="F27"><di:waypoint x="2740" y="480"/><di:waypoint x="2740" y="845"/><di:waypoint x="3860" y="845"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="F28_di" bpmnElement="F28"><di:waypoint x="3420" y="585"/><di:waypoint x="3515" y="585"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="F29_di" bpmnElement="F29"><di:waypoint x="3540" y="560"/><di:waypoint x="3540" y="65"/><di:waypoint x="3660" y="65"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="F30_di" bpmnElement="F30"><di:waypoint x="3540" y="610"/><di:waypoint x="3540" y="845"/><di:waypoint x="3860" y="845"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="F31_di" bpmnElement="F31"><di:waypoint x="3820" y="65"/><di:waypoint x="3860" y="65"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="F32_di" bpmnElement="F32"><di:waypoint x="4020" y="65"/><di:waypoint x="4115" y="65"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="F33_di" bpmnElement="F33"><di:waypoint x="4140" y="90"/><di:waypoint x="4140" y="715"/><di:waypoint x="4260" y="715"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="F34_di" bpmnElement="F34"><di:waypoint x="4140" y="40"/><di:waypoint x="4140" y="14"/><di:waypoint x="3740" y="14"/><di:waypoint x="3740" y="30"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="F35_di" bpmnElement="F35"><di:waypoint x="4420" y="715"/><di:waypoint x="4522" y="715"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="F36_di" bpmnElement="F36"><di:waypoint x="4020" y="845"/><di:waypoint x="4122" y="845"/></bpmndi:BPMNEdge>
+  </bpmndi:BPMNPlane></bpmndi:BPMNDiagram></bpmn:definitions>

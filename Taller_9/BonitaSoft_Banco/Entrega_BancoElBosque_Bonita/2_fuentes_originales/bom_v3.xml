@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<businessObjectModel xmlns="http://documentation.bonitasoft.com/bdm-xml-schema/1.0" modelVersion="1.0" productVersion="7.9.0">
+  <businessObjects>
+    <businessObject qualifiedName="com.bancoelbosque.Documento"><fields>
+      <field type="STRING" length="255" name="tipoDocumento" nullable="true" collection="false"/>
+      <field type="STRING" length="255" name="nombreDocumento" nullable="true" collection="false"/>
+    </fields></businessObject>
+    <businessObject qualifiedName="com.bancoelbosque.EstudioRiesgo"><fields>
+      <field type="STRING" length="255" name="estado" nullable="true" collection="false"/>
+      <field type="STRING" length="255" name="motivo" nullable="true" collection="false"/>
+    </fields></businessObject>
+    <businessObject qualifiedName="com.bancoelbosque.EstudioInterno"><fields>
+      <field type="STRING" length="255" name="estado" nullable="true" collection="false"/>
+      <field type="STRING" length="255" name="motivo" nullable="true" collection="false"/>
+    </fields></businessObject>
+    <businessObject qualifiedName="com.bancoelbosque.EstudioCentral"><fields>
+      <field type="STRING" length="255" name="centralRiesgo" nullable="true" collection="false"/>
+      <field type="INTEGER" name="calificacion" nullable="true" collection="false"/>
+      <field type="STRING" length="255" name="estado" nullable="true" collection="false"/>
+      <field type="STRING" length="255" name="motivo" nullable="true" collection="false"/>
+    </fields></businessObject>
+    <businessObject qualifiedName="com.bancoelbosque.EstudioTributario"><fields>
+      <field type="STRING" length="255" name="entidad" nullable="true" collection="false"/>
+      <field type="STRING" length="255" name="resultado" nullable="true" collection="false"/>
+      <field type="STRING" length="255" name="estado" nullable="true" collection="false"/>
+      <field type="STRING" length="255" name="motivo" nullable="true" collection="false"/>
+    </fields></businessObject>
+    <businessObject qualifiedName="com.bancoelbosque.EstudioCapacidad"><fields>
+      <field type="DOUBLE" name="capacidadEndeudamiento" nullable="true" collection="false"/>
+      <field type="STRING" length="255" name="estado" nullable="true" collection="false"/>
+      <field type="STRING" length="255" name="motivo" nullable="true" collection="false"/>
+    </fields></businessObject>
+    <businessObject qualifiedName="com.bancoelbosque.EstudioAntecedentes"><fields>
+      <field type="STRING" length="255" name="entidad" nullable="true" collection="false"/>
+      <field type="STRING" length="255" name="resultado" nullable="true" collection="false"/>
+      <field type="STRING" length="255" name="estado" nullable="true" collection="false"/>
+      <field type="STRING" length="255" name="motivo" nullable="true" collection="false"/>
+    </fields></businessObject>
+    <businessObject qualifiedName="com.bancoelbosque.AprobacionFinal"><fields>
+      <field type="STRING" length="255" name="estado" nullable="true" collection="false"/>
+      <field type="STRING" length="255" name="motivo" nullable="true" collection="false"/>
+    </fields></businessObject>
+    <businessObject qualifiedName="com.bancoelbosque.FirmaPagare"><fields>
+      <field type="LOCALDATE" name="fecha" nullable="true" collection="false"/>
+      <field type="STRING" length="255" name="hora" nullable="true" collection="false"/>
+      <field type="STRING" length="255" name="numeroPagare" nullable="true" collection="false"/>
+      <field type="BOOLEAN" name="firmado" nullable="true" collection="false"/>
+    </fields></businessObject>
+    <businessObject qualifiedName="com.bancoelbosque.Desembolso"><fields>
+      <field type="DOUBLE" name="monto" nullable="true" collection="false"/>
+      <field type="STRING" length="255" name="medio" nullable="true" collection="false"/>
+      <field type="STRING" length="255" name="numeroCheque" nullable="true" collection="false"/>
+      <field type="STRING" length="255" name="numeroCuentaDestino" nullable="true" collection="false"/>
+      <field type="STRING" length="255" name="bancoDestino" nullable="true" collection="false"/>
+    </fields></businessObject>
+    <businessObject qualifiedName="com.bancoelbosque.Solicitud"><fields>
+      <field type="STRING" length="255" name="tipoIdentificacion" nullable="true" collection="false"/>
+      <field type="STRING" length="255" name="identificacion" nullable="true" collection="false"/>
+      <field type="STRING" length="255" name="nombres" nullable="true" collection="false"/>
+      <field type="STRING" length="255" name="apellidos" nullable="true" collection="false"/>
+      <field type="STRING" length="255" name="email" nullable="true" collection="false"/>
+      <field type="DOUBLE" name="montoSolicitado" nullable="true" collection="false"/>
+      <field type="DOUBLE" name="ingresosTotales" nullable="true" collection="false"/>
+      <field type="DOUBLE" name="gastosFijos" nullable="true" collection="false"/>
+      <field type="BOOLEAN" name="decisionReducirMonto" nullable="true" collection="false"/>
+      <relationField type="COMPOSITION" reference="com.bancoelbosque.Documento" fetchType="EAGER" name="documentos" nullable="true" collection="true"/>
+      <relationField type="COMPOSITION" reference="com.bancoelbosque.EstudioRiesgo" fetchType="EAGER" name="estudioRiesgo" nullable="true" collection="false"/>
+      <relationField type="COMPOSITION" reference="com.bancoelbosque.EstudioInterno" fetchType="EAGER" name="estudioInterno" nullable="true" collection="false"/>
+      <relationField type="COMPOSITION" reference="com.bancoelbosque.EstudioCentral" fetchType="EAGER" name="estudiosCentrales" nullable="true" collection="true"/>
+      <relationField type="COMPOSITION" reference="com.bancoelbosque.EstudioTributario" fetchType="EAGER" name="estudiosTributarios" nullable="true" collection="true"/>
+      <relationField type="COMPOSITION" reference="com.bancoelbosque.EstudioCapacidad" fetchType="EAGER" name="estudioCapacidad" nullable="true" collection="false"/>
+      <relationField type="COMPOSITION" reference="com.bancoelbosque.EstudioAntecedentes" fetchType="EAGER" name="estudiosAntecedentes" nullable="true" collection="true"/>
+      <relationField type="COMPOSITION" reference="com.bancoelbosque.AprobacionFinal" fetchType="EAGER" name="aprobacionFinal" nullable="true" collection="false"/>
+      <relationField type="COMPOSITION" reference="com.bancoelbosque.FirmaPagare" fetchType="EAGER" name="firmaPagare" nullable="true" collection="false"/>
+      <relationField type="COMPOSITION" reference="com.bancoelbosque.Desembolso" fetchType="EAGER" name="desembolso" nullable="true" collection="false"/>
+    </fields></businessObject>
+  </businessObjects>
+</businessObjectModel>
