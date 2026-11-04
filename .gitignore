@@ -1,10 +1,40 @@
-# macOS
+# Sistema operativo
 .DS_Store
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+desktop.ini
 
-# Archivos temporales y de bloqueo de Office (Excel, Word, PowerPoint)
+# Office y LibreOffice: archivos de bloqueo y temporales
 ~$*
+.~lock.*#
 *.tmp
+*.bak
 
-# Bonita Studio: datos de ejecución que el Studio regenera
+# draw.io: copias de respaldo automáticas
+*.drawio.bkp
+*.drawio.dtmp
+
+# Bonita Studio: el proyecto se versiona como .bos + diagramas (.proc y .png).
+# Todo lo que el Studio genera al importar o ejecutar queda fuera.
 **/h2_database/
 **/target/
+**/web_widgets/
+**/web_page/
+**/.metadata/
+.settings/
+.project
+.classpath
+
+# Editores e IDEs
+.vscode/
+.idea/
+*.swp
+
+# Configuración local de Claude Code (la compartida, .claude/settings.json, sí se versiona)
+.claude/settings.local.json
+
+# Credenciales
+.env
+.env.*
