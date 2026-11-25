@@ -1,0 +1,15 @@
+{
+  "name": "idp-telco-konrad",
+  "version": "1.0.0",
+  "description": "Proveedor de identidad web (OpenID Connect + SSO) para las aplicaciones TO-BE de Telco Konrad",
+  "private": true,
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node start.js",
+    "test": "node --test test/e2e.test.js",
+    "seed": "node idp/directorio.js"
+  }
+}

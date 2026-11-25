@@ -27,6 +27,7 @@ Trabajo del semestre sobre el **Proyecto #1: Proceso de arquitectura empresarial
 | [T7](Taller_7/) | Matriz EA: hojas 3.0 y 4.0 |
 | [T8](Taller_8/) | Matriz EA: hojas 5.0, 7.0, 8.0 y 9.0, y roadmap |
 | [Expo](Expo_Seguridad_WAF_UTM_IdP/) | Arquitectura de seguridad: WAF, UTM e IdP (presentación y simulador) |
+| [IdP](IdP_Telco_Konrad/) | Proveedor de identidad web con SSO (OpenID Connect) para las aplicaciones TO-BE |
 
 La matriz EA-XPress crece con cada taller: la versión vigente es la del taller más reciente.
 
@@ -40,7 +41,8 @@ La matriz EA-XPress crece con cada taller: la versión vigente es la del taller 
 │   ├── diagramas/          Integraciones AS-IS / TO-BE y secuencias (Mermaid + PNG)
 │   └── plantillas/         Plantilla EA-XPress del curso
 ├── Taller_1/ … Taller_8/   Entregable de cada taller
-└── Expo_Seguridad_WAF_UTM_IdP/
+├── Expo_Seguridad_WAF_UTM_IdP/
+└── IdP_Telco_Konrad/       IdP web con SSO (Node.js, sin dependencias): npm start
 ```
 
 Los entregables siguen el formato `T<n>[_SUFIJO]_DURAN_MUÑOZ_PEÑA_PRIETO_VARGAS_GRUPO_2_20262.<ext>`. El proyecto Bonita del T6 tiene su propio [README](Taller_6/Bonita/README.md).
